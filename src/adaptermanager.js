@@ -203,7 +203,12 @@ exports.makeBidRequests = function(adUnits, auctionStart, auctionId, cbTimeout, 
       auctionStart: auctionStart,
       timeout: cbTimeout
     };
-    if (bidderRequest.bids && bidderRequest.bids.length !== 0) {
+    const adapter = _bidderRegistry[bidderCode];
+    if (!adapter) {
+      utils.logError(`Trying to make a request for bidder that does not exist: ${bidderCode}`);
+    }
+
+    if (adapter && bidderRequest.bids && bidderRequest.bids.length !== 0) {
       bidRequests.push(bidderRequest);
     }
   });
@@ -230,7 +235,10 @@ exports.checkBidRequestSizes = (adUnits) => {
     if (mediaTypes && mediaTypes.banner) {
       const banner = mediaTypes.banner;
       if (banner.sizes) {
-        adUnit.sizes = banner.sizes;
+        // make sure we always send [[h,w]] format
+        const normalizedSize = utils.getAdUnitSizes(adUnit);
+        banner.sizes = normalizedSize;
+        adUnit.sizes = normalizedSize;
       } else {
         utils.logError('Detected a mediaTypes.banner object did not include sizes.  This is a required field for the mediaTypes.banner object.  Removing invalid mediaTypes.banner object from request.');
         delete adUnit.mediaTypes.banner;
@@ -344,19 +352,15 @@ exports.callBids = (adUnits, bidRequests, addBidResponse, doneCb, requestCallbac
     bidRequest.start = timestamp();
     // TODO : Do we check for bid in pool from here and skip calling adapter again ?
     const adapter = _bidderRegistry[bidRequest.bidderCode];
-    if (adapter) {
-      utils.logMessage(`CALLING BIDDER ======= ${bidRequest.bidderCode}`);
-      events.emit(CONSTANTS.EVENTS.BID_REQUESTED, bidRequest);
-      bidRequest.doneCbCallCount = 0;
-      let done = doneCb(bidRequest.bidderRequestId);
-      let ajax = ajaxBuilder(clientBidRequests[0].timeout, requestCallbacks ? {
-        request: requestCallbacks.request.bind(null, bidRequest.bidderCode),
-        done: requestCallbacks.done
-      } : undefined);
-      adapter.callBids(bidRequest, addBidResponse, done, ajax);
-    } else {
-      utils.logError(`Adapter trying to be called which does not exist: ${bidRequest.bidderCode} adaptermanager.callBids`);
-    }
+    utils.logMessage(`CALLING BIDDER ======= ${bidRequest.bidderCode}`);
+    events.emit(CONSTANTS.EVENTS.BID_REQUESTED, bidRequest);
+    bidRequest.doneCbCallCount = 0;
+    let done = doneCb(bidRequest.bidderRequestId);
+    let ajax = ajaxBuilder(clientBidRequests[0].timeout, requestCallbacks ? {
+      request: requestCallbacks.request.bind(null, bidRequest.bidderCode),
+      done: requestCallbacks.done
+    } : undefined);
+    adapter.callBids(bidRequest, addBidResponse, done, ajax);
   });
 }
 

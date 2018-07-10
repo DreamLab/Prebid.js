@@ -1,0 +1,13 @@
+[
+  "consentManagement",
+  "rubiconBidAdapter",
+  "appnexusBidAdapter",
+  "openxBidAdapter",
+  "ixBidAdapter",
+  "adformBidAdapter",
+  "pubmaticBidAdapter",
+  "audienceNetworkBidAdapter",
+  "criteoBidAdapter",
+  "rtbhouseBidAdapter",
+  "adomikAnalyticsAdapter"
+]

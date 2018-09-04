@@ -236,6 +236,7 @@ gulp.task('watch', function () {
   ], ['lint']);
   connect.server({
     https: argv.https,
+    host: '0.0.0.0',
     port: port,
     root: './',
     livereload: true

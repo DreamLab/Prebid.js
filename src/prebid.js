@@ -11,6 +11,7 @@ import { targeting, getHighestCpmBidsFromBidPool, RENDERED, BID_TARGETING_SET } 
 import { createHook } from 'src/hook';
 import { sessionLoader } from 'src/debugging';
 import includes from 'core-js/library/fn/array/includes';
+import { adunitCounter } from './adUnits';
 
 const $$PREBID_GLOBAL$$ = getGlobal();
 const CONSTANTS = require('./constants.json');
@@ -367,6 +368,7 @@ $$PREBID_GLOBAL$$.requestBids = createHook('asyncSeries', function ({ bidsBackHa
         adUnit.bids = adUnit.bids.filter(bid => bid.bidder !== bidder);
       }
     });
+    adunitCounter.incrementCounter(adUnit.code);
   });
 
   if (!adUnits || adUnits.length === 0) {
@@ -601,6 +603,33 @@ $$PREBID_GLOBAL$$.getHighestCpmBids = function (adUnitCode) {
   let bidsReceived = getHighestCpmBidsFromBidPool(auctionManager.getBidsReceived(), getLatestHighestCpmBid);
   return targeting.getWinningBids(adUnitCode, bidsReceived)
     .map(removeRequestId);
+};
+
+/**
+ * Mark the winning bid as used, should only be used in conjunction with video
+ * @typedef {Object} MarkBidRequest
+ * @property {string} adUnitCode The ad unit code
+ * @property {string} adId The id representing the ad we want to mark
+ *
+ * @alias module:pbjs.markWinningBidAsUsed
+*/
+$$PREBID_GLOBAL$$.markWinningBidAsUsed = function (markBidRequest) {
+  let bids = [];
+
+  if (markBidRequest.adUnitCode && markBidRequest.adId) {
+    bids = auctionManager.getBidsReceived()
+      .filter(bid => bid.adId === markBidRequest.adId && bid.adUnitCode === markBidRequest.adUnitCode);
+  } else if (markBidRequest.adUnitCode) {
+    bids = targeting.getWinningBids(markBidRequest.adUnitCode);
+  } else if (markBidRequest.adId) {
+    bids = auctionManager.getBidsReceived().filter(bid => bid.adId === markBidRequest.adId);
+  } else {
+    utils.logWarn('Inproper usage of markWinningBidAsUsed. It\'ll need an adUnitCode and/or adId to function.');
+  }
+
+  if (bids.length > 0) {
+    bids[0].status = RENDERED;
+  }
 };
 
 /**

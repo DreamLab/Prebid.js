@@ -99,6 +99,8 @@ export const spec = {
    */
   interpretResponse: function(serverResponse, {bidderRequest}) {
     serverResponse = serverResponse.body;
+    console.log('serverResponse', serverResponse);
+    console.log('bidderRequest', bidderRequest);
     const bids = [];
     if (!serverResponse || serverResponse.error) {
       let errorMessage = `in response for ${bidderRequest.bidderCode} adapter`;
@@ -119,6 +121,7 @@ export const spec = {
         }
       });
     }
+    console.log('bids: ', bids)
     return bids;
   },
 

@@ -39,6 +39,8 @@ var port = 9999;
 // Tasks
 gulp.task('default', ['webpack']);
 
+gulp.task('watch', ['build-bundle-dev', 'watch-dev']);
+
 gulp.task('serve', ['lint', 'build-bundle-dev', 'watch', 'test']);
 
 gulp.task('serve-nw', ['lint', 'watch', 'e2etest']);
@@ -49,8 +51,8 @@ gulp.task('build', ['build-bundle-prod']);
 
 gulp.task('clean', function () {
   return gulp.src(['build'], {
-      read: false
-    })
+    read: false
+  })
     .pipe(clean());
 });
 
@@ -64,7 +66,7 @@ function nodeBundle(modules) {
       .on('error', (err) => {
         reject(err);
       })
-      .pipe(through.obj(function(file, enc, done) {
+      .pipe(through.obj(function (file, enc, done) {
         resolve(file.contents.toString(enc));
         done();
       }));
@@ -78,13 +80,13 @@ var explicitModules = [
 
 function bundle(dev, moduleArr) {
   var modules = moduleArr || helpers.getArgModules(),
-      allModules = helpers.getModuleNames(modules);
+    allModules = helpers.getModuleNames(modules);
 
-  if(modules.length === 0) {
+  if (modules.length === 0) {
     modules = allModules.filter(module => !explicitModules.includes(module));
   } else {
     var diff = _.difference(modules, allModules);
-    if(diff.length !== 0) {
+    if (diff.length !== 0) {
       throw new gutil.PluginError({
         plugin: 'bundle',
         message: 'invalid modules: ' + diff.join(', ')
@@ -106,13 +108,13 @@ function bundle(dev, moduleArr) {
   gutil.log('Generating bundle:', outputFileName);
 
   return gulp.src(
-      entries
-    )
-    .pipe(gulpif(dev, sourcemaps.init({loadMaps: true})))
+    entries
+  )
+    .pipe(gulpif(dev, sourcemaps.init({ loadMaps: true })))
     .pipe(concat(outputFileName))
     .pipe(gulpif(!argv.manualEnable, footer('\n<%= global %>.processQueue();', {
-        global: prebid.globalVarName
-      }
+      global: prebid.globalVarName
+    }
     )))
     .pipe(gulpif(dev, sourcemaps.write('.')));
 }
@@ -137,7 +139,7 @@ gulp.task('build-bundle-dev', ['devpack'], gulpBundle.bind(null, true));
 gulp.task('build-bundle-prod', ['webpack'], gulpBundle.bind(null, false));
 gulp.task('bundle', gulpBundle.bind(null, false)); // used for just concatenating pre-built files with no build step
 
-gulp.task('bundle-to-stdout', function() {
+gulp.task('bundle-to-stdout', function () {
   nodeBundle().then(file => console.log(file));
 });
 
@@ -198,7 +200,7 @@ gulp.task('test', ['clean'], function (done) {
 });
 
 // If --file "<path-to-test-file>" is given, the task will only run tests in the specified file.
-gulp.task('test-coverage', ['clean'], function(done) {
+gulp.task('test-coverage', ['clean'], function (done) {
   new KarmaServer(karmaConfMaker(true, false, false, argv.file), newKarmaCallback(done)).start();
 });
 
@@ -215,10 +217,10 @@ gulp.task('view-coverage', function (done) {
   done();
 });
 
-gulp.task('coveralls', ['test-coverage'], function() { // 2nd arg is a dependency: 'test' must be finished
+gulp.task('coveralls', ['test-coverage'], function () { // 2nd arg is a dependency: 'test' must be finished
   // first send results of istanbul's test coverage to coveralls.io.
   return gulp.src('gulpfile.js', { read: false }) // You have to give it a file, but you don't
-  // have to read it.
+    // have to read it.
     .pipe(shell('cat build/coverage/lcov.info | node_modules/coveralls/bin/coveralls.js'));
 });
 
@@ -242,6 +244,16 @@ gulp.task('watch', function () {
   });
 });
 
+gulp.task('watch-dev', function () {
+  gulp.watch([
+    'src/**/*.js',
+    'modules/**/*.js'
+  ], ['build-bundle-dev']);
+  gulp.watch([
+    'loaders/**/*.js'
+  ]);
+});
+
 gulp.task('lint', () => {
   return gulp.src(['src/**/*.js', 'modules/**/*.js', 'test/**/*.js'])
     .pipe(eslint())
@@ -262,9 +274,9 @@ gulp.task('docs', ['clean-docs'], function () {
     .pipe(gulp.dest('docs'));
 });
 
-gulp.task('e2etest', ['devpack', 'webpack'], function() {
+gulp.task('e2etest', ['devpack', 'webpack'], function () {
   var cmdQueue = [];
-  if(argv.browserstack) {
+  if (argv.browserstack) {
     var browsers = require('./browsers.json');
     delete browsers['bs_ie_9_windows_7'];
 
@@ -276,11 +288,11 @@ gulp.task('e2etest', ['devpack', 'webpack'], function() {
 
     var startWith = 'bs';
 
-    Object.keys(browsers).filter(function(v){
+    Object.keys(browsers).filter(function (v) {
       return v.substring(0, startWith.length) === startWith && browsers[v].browser !== 'iphone';
-    }).map(function(v,i,arr) {
-      var newArr = (i%2 === 0) ? arr.slice(i,i+2) : null;
-      if(newArr) {
+    }).map(function (v, i, arr) {
+      var newArr = (i % 2 === 0) ? arr.slice(i, i + 2) : null;
+      if (newArr) {
         var cmd = 'nightwatch --env ' + newArr.join(',') + cmdStr;
         cmdQueue.push(cmd);
       }
@@ -291,7 +303,7 @@ gulp.task('e2etest', ['devpack', 'webpack'], function() {
     .pipe(shell(cmdQueue.join(';')));
 });
 
-gulp.task('e2etest-report', function() {
+gulp.task('e2etest-report', function () {
   var reportPort = 9010;
   var targetDestinationDir = './e2etest-report';
   helpers.createEnd2EndTestReport(targetDestinationDir);
@@ -301,14 +313,14 @@ gulp.task('e2etest-report', function() {
     livereload: true
   });
 
-  setTimeout(function() {
+  setTimeout(function () {
     opens('http://localhost:' + reportPort + '/' + targetDestinationDir.slice(2) + '/results.html');
   }, 5000);
 });
 
 // This task creates postbid.js. Postbid setup is different from prebid.js
 // More info can be found here http://prebid.org/overview/what-is-post-bid.html
-gulp.task('build-postbid', ['escape-postbid-config'], function() {
+gulp.task('build-postbid', ['escape-postbid-config'], function () {
   var fileContent = fs.readFileSync('./build/postbid/postbid-config.js', 'utf8');
 
   return gulp.src('./integrationExamples/postbid/oas/postbid.js')
@@ -317,7 +329,7 @@ gulp.task('build-postbid', ['escape-postbid-config'], function() {
 });
 
 // Dependant task for building postbid. It escapes postbid-config file.
-gulp.task('escape-postbid-config', function() {
+gulp.task('escape-postbid-config', function () {
   gulp.src('./integrationExamples/postbid/oas/postbid-config.js')
     .pipe(jsEscape())
     .pipe(gulp.dest('build/postbid/'));

@@ -5,11 +5,13 @@
   "main": "src/prebid.js",
   "scripts": {
     "test": "gulp run-tests",
-    "lint": "gulp lint"
+    "lint": "gulp lint",
+    "serve": "gulp watch --modules=rasBidAdapter,appnexusBidAdapter",
+    "build": "gulp build --modules=rasBidAdapter,appnexusBidAdapter"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/prebid/Prebid.js.git"
+    "url": "git+https://github.com/prebid/Prebid.js.git"
   },
   "keywords": [
     "advertising",

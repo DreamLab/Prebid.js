@@ -1,30 +1,24 @@
-import eplAnalyticsAdapter from 'modules/eplanningAnalyticsAdapter';
-import includes from 'core-js/library/fn/array/includes';
+import eplAnalyticsAdapter from 'modules/eplanningAnalyticsAdapter.js';
+import includes from 'core-js/library/fn/array/includes.js';
 import { expect } from 'chai';
-import {parse as parseURL} from 'src/url';
-let adaptermanager = require('src/adaptermanager');
+import {parse as parseURL} from 'src/url.js';
+import { server } from 'test/mocks/xhr.js';
+let adapterManager = require('src/adapterManager').default;
 let events = require('src/events');
 let constants = require('src/constants.json');
 
-describe('eplanning analytics adapter', () => {
-  let xhr;
-  let requests;
-
-  beforeEach(() => {
-    xhr = sinon.useFakeXMLHttpRequest();
-    requests = [];
-    xhr.onCreate = request => { requests.push(request) };
+describe('eplanning analytics adapter', function () {
+  beforeEach(function () {
     sinon.stub(events, 'getEvents').returns([]);
   });
 
-  afterEach(() => {
-    xhr.restore();
+  afterEach(function () {
     events.getEvents.restore();
     eplAnalyticsAdapter.disableAnalytics();
   });
 
-  describe('track', () => {
-    it('builds and sends auction data', () => {
+  describe('track', function () {
+    it('builds and sends auction data', function () {
       sinon.spy(eplAnalyticsAdapter, 'track');
 
       let auctionTimestamp = 1496510254313;
@@ -75,12 +69,12 @@ describe('eplanning analytics adapter', () => {
         }
       ];
 
-      adaptermanager.registerAnalyticsAdapter({
+      adapterManager.registerAnalyticsAdapter({
         code: 'eplanning',
         adapter: eplAnalyticsAdapter
       });
 
-      adaptermanager.enableAnalytics({
+      adapterManager.enableAnalytics({
         provider: 'eplanning',
         options: initOptions
       });
@@ -115,7 +109,7 @@ describe('eplanning analytics adapter', () => {
       events.emit(constants.EVENTS.AUCTION_END, {auctionId: pauctionId});
 
       // Step 7: Find the request data sent (filtering other hosts)
-      requests = requests.filter(req => {
+      let requests = server.requests.filter(req => {
         return req.url.indexOf(initOptions.host) > -1;
       });
       expect(requests.length).to.equal(1);

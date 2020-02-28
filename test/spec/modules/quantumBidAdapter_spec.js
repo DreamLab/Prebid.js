@@ -1,8 +1,8 @@
 import { expect } from 'chai'
-import { spec } from 'modules/quantumBidAdapter'
-import { newBidder } from 'src/adapters/bidderFactory'
+import { spec } from 'modules/quantumBidAdapter.js'
+import { newBidder } from 'src/adapters/bidderFactory.js'
 
-const ENDPOINT = '//s.sspqns.com/hb'
+const ENDPOINT = 'https://s.sspqns.com/hb'
 const REQUEST = {
   'bidder': 'quantum',
   'sizes': [[300, 250]],
@@ -27,10 +27,10 @@ const serverResponse = {
     ''
   ],
   'is_fallback': false,
-  'nurl': 'http://s.sspqns.com/imp/KpQ1WNMHV-9a3HqWL_0JnujJFGo1Hnx9RS3FT_Yy8jW-Z6t_PJYmP2otidJsxE3qcY2EozzcBjRzGM7HEQcxVnjOzq0Th1cxb6A5bSp5BizTwY5SRaxx_0PgF6--8LqaF4LMUgMmhfF5k3gOOzzK6gKdavia4_w3LJ1CRWkMEwABr8bPzeovy1y4MOZsOXv7vXjPGMKJSTgphuZR57fL4u4ZFF4XY70K_TaH5bfXHMRAzE0Q38tfpTvbdFV_u2g-FoF0gjzKjiS88VnetT-Jo3qtrMphWzr52jsg5tH3L7hbymUOm1YkuJP9xrXLoZNVgC5sTMYolKLMSu6dqhS2FXcdfaGAcHweaaAAwJq-pB7DuiVcdnZQphUymhIia_KG2AYweWp6TYEpJbJjf2BcLpm_-KGw4gLh6L3DtEvUZwXZe-JpUJ4/',
+  'nurl': 'https://s.sspqns.com/imp/KpQ1WNMHV-9a3HqWL_0JnujJFGo1Hnx9RS3FT_Yy8jW-Z6t_PJYmP2otidJsxE3qcY2EozzcBjRzGM7HEQcxVnjOzq0Th1cxb6A5bSp5BizTwY5SRaxx_0PgF6--8LqaF4LMUgMmhfF5k3gOOzzK6gKdavia4_w3LJ1CRWkMEwABr8bPzeovy1y4MOZsOXv7vXjPGMKJSTgphuZR57fL4u4ZFF4XY70K_TaH5bfXHMRAzE0Q38tfpTvbdFV_u2g-FoF0gjzKjiS88VnetT-Jo3qtrMphWzr52jsg5tH3L7hbymUOm1YkuJP9xrXLoZNVgC5sTMYolKLMSu6dqhS2FXcdfaGAcHweaaAAwJq-pB7DuiVcdnZQphUymhIia_KG2AYweWp6TYEpJbJjf2BcLpm_-KGw4gLh6L3DtEvUZwXZe-JpUJ4/',
   'native': {
     'link': {
-      'url': 'http://s.sspqns.com/click/KpQ1WNMHV-9a3HqWL_0JnujJFGo1Hnx9RS3FT_Yy8jW-Z6t_PJYmP2otidJsxE3qcY2EozzcBjRzGM7HEQcxVnjOzq0Th1cxb6A5bSp5BizTwY5SRaxx_0PgF6--8LqaF4LMUgMmhfF5k3gOOzzK6gKdavia4_w3LJ1CRWkMEwABr8bPzeovy1y4MOZsOXv7vXjPGMKJSTgphuZR57fL4u4ZFF4XY70K_TaH5bfXHMRAzE0Q38tfpTvbdFV_u2g-FoF0gjzKjiS88VnetT-Jo3qtrMphWzr52jsg5tH3L7hbymUOm1YkuJP9xrXLoZNVgC5sTMYolKLMSu6dqhS2FXcdfaGAcHweaaAAwJq-pB7DuiVcdnZQphUymhIia_KG2AYweWp6TYEpJbJjf2BcLpm_-KGw4gLh6L3DtEvUZwXZe-JpUJ4///',
+      'url': 'https://s.sspqns.com/click/KpQ1WNMHV-9a3HqWL_0JnujJFGo1Hnx9RS3FT_Yy8jW-Z6t_PJYmP2otidJsxE3qcY2EozzcBjRzGM7HEQcxVnjOzq0Th1cxb6A5bSp5BizTwY5SRaxx_0PgF6--8LqaF4LMUgMmhfF5k3gOOzzK6gKdavia4_w3LJ1CRWkMEwABr8bPzeovy1y4MOZsOXv7vXjPGMKJSTgphuZR57fL4u4ZFF4XY70K_TaH5bfXHMRAzE0Q38tfpTvbdFV_u2g-FoF0gjzKjiS88VnetT-Jo3qtrMphWzr52jsg5tH3L7hbymUOm1YkuJP9xrXLoZNVgC5sTMYolKLMSu6dqhS2FXcdfaGAcHweaaAAwJq-pB7DuiVcdnZQphUymhIia_KG2AYweWp6TYEpJbJjf2BcLpm_-KGw4gLh6L3DtEvUZwXZe-JpUJ4///',
       'clicktrackers': ['https://elasticad.net']
     },
     'assets': [
@@ -46,7 +46,7 @@ const serverResponse = {
         'img': {
           'w': 15,
           'h': 15,
-          'url': 'http://files.ssp.theadtech.com.s3.amazonaws.com/media/image/sxjermpz/scalecrop-15x15'
+          'url': 'https://files.ssp.theadtech.com.s3.amazonaws.com/media/image/sxjermpz/scalecrop-15x15'
         }
       },
       {
@@ -61,19 +61,19 @@ const serverResponse = {
         'img': {
           'w': 500,
           'h': 500,
-          'url': 'http://files.ssp.theadtech.com.s3.amazonaws.com/media/image/sxjermpz/scalecrop-500x500'
+          'url': 'https://files.ssp.theadtech.com.s3.amazonaws.com/media/image/sxjermpz/scalecrop-500x500'
         }
       },
       {
         'id': 6,
         'video': {
-          'vasttag': 'http://elasticad.net/vast.xml'
+          'vasttag': 'https://elasticad.net/vast.xml'
         }
       },
       {
         'id': 2001,
         'data': {
-          'value': 'http://elasticad.net'
+          'value': 'https://elasticad.net'
         }
       },
       {
@@ -97,7 +97,7 @@ const serverResponse = {
       {
         'id': 2003,
         'data': {
-          'value': 'http://elasticad.net'
+          'value': 'https://elasticad.net'
         }
       },
       {
@@ -115,7 +115,7 @@ const serverResponse = {
       {
         'id': 2006,
         'data': {
-          'value': 'http://elasticad.net/vast.xml'
+          'value': 'https://elasticad.net/vast.xml'
         }
       },
       {
@@ -129,7 +129,7 @@ const serverResponse = {
     'ver': '1.1'
   },
   'sync': [
-    'http://match.adsrvr.org/track/cmb/generic?ttd_pid=s6e8ued&ttd_tpi=1'
+    'https://match.adsrvr.org/track/cmb/generic?ttd_pid=s6e8ued&ttd_tpi=1'
   ]
 }
 
@@ -139,10 +139,10 @@ const nativeServerResponse = {
     ''
   ],
   'is_fallback': false,
-  'nurl': 'http://s.sspqns.com/imp/KpQ1WNMHV-9a3HqWL_0JnujJFGo1Hnx9RS3FT_Yy8jW-Z6t_PJYmP2otidJsxE3qcY2EozzcBjRzGM7HEQcxVnjOzq0Th1cxb6A5bSp5BizTwY5SRaxx_0PgF6--8LqaF4LMUgMmhfF5k3gOOzzK6gKdavia4_w3LJ1CRWkMEwABr8bPzeovy1y4MOZsOXv7vXjPGMKJSTgphuZR57fL4u4ZFF4XY70K_TaH5bfXHMRAzE0Q38tfpTvbdFV_u2g-FoF0gjzKjiS88VnetT-Jo3qtrMphWzr52jsg5tH3L7hbymUOm1YkuJP9xrXLoZNVgC5sTMYolKLMSu6dqhS2FXcdfaGAcHweaaAAwJq-pB7DuiVcdnZQphUymhIia_KG2AYweWp6TYEpJbJjf2BcLpm_-KGw4gLh6L3DtEvUZwXZe-JpUJ4/',
+  'nurl': 'https://s.sspqns.com/imp/KpQ1WNMHV-9a3HqWL_0JnujJFGo1Hnx9RS3FT_Yy8jW-Z6t_PJYmP2otidJsxE3qcY2EozzcBjRzGM7HEQcxVnjOzq0Th1cxb6A5bSp5BizTwY5SRaxx_0PgF6--8LqaF4LMUgMmhfF5k3gOOzzK6gKdavia4_w3LJ1CRWkMEwABr8bPzeovy1y4MOZsOXv7vXjPGMKJSTgphuZR57fL4u4ZFF4XY70K_TaH5bfXHMRAzE0Q38tfpTvbdFV_u2g-FoF0gjzKjiS88VnetT-Jo3qtrMphWzr52jsg5tH3L7hbymUOm1YkuJP9xrXLoZNVgC5sTMYolKLMSu6dqhS2FXcdfaGAcHweaaAAwJq-pB7DuiVcdnZQphUymhIia_KG2AYweWp6TYEpJbJjf2BcLpm_-KGw4gLh6L3DtEvUZwXZe-JpUJ4/',
   'native': {
     'link': {
-      'url': 'http://s.sspqns.com/click/KpQ1WNMHV-9a3HqWL_0JnujJFGo1Hnx9RS3FT_Yy8jW-Z6t_PJYmP2otidJsxE3qcY2EozzcBjRzGM7HEQcxVnjOzq0Th1cxb6A5bSp5BizTwY5SRaxx_0PgF6--8LqaF4LMUgMmhfF5k3gOOzzK6gKdavia4_w3LJ1CRWkMEwABr8bPzeovy1y4MOZsOXv7vXjPGMKJSTgphuZR57fL4u4ZFF4XY70K_TaH5bfXHMRAzE0Q38tfpTvbdFV_u2g-FoF0gjzKjiS88VnetT-Jo3qtrMphWzr52jsg5tH3L7hbymUOm1YkuJP9xrXLoZNVgC5sTMYolKLMSu6dqhS2FXcdfaGAcHweaaAAwJq-pB7DuiVcdnZQphUymhIia_KG2AYweWp6TYEpJbJjf2BcLpm_-KGw4gLh6L3DtEvUZwXZe-JpUJ4///'
+      'url': 'https://s.sspqns.com/click/KpQ1WNMHV-9a3HqWL_0JnujJFGo1Hnx9RS3FT_Yy8jW-Z6t_PJYmP2otidJsxE3qcY2EozzcBjRzGM7HEQcxVnjOzq0Th1cxb6A5bSp5BizTwY5SRaxx_0PgF6--8LqaF4LMUgMmhfF5k3gOOzzK6gKdavia4_w3LJ1CRWkMEwABr8bPzeovy1y4MOZsOXv7vXjPGMKJSTgphuZR57fL4u4ZFF4XY70K_TaH5bfXHMRAzE0Q38tfpTvbdFV_u2g-FoF0gjzKjiS88VnetT-Jo3qtrMphWzr52jsg5tH3L7hbymUOm1YkuJP9xrXLoZNVgC5sTMYolKLMSu6dqhS2FXcdfaGAcHweaaAAwJq-pB7DuiVcdnZQphUymhIia_KG2AYweWp6TYEpJbJjf2BcLpm_-KGw4gLh6L3DtEvUZwXZe-JpUJ4///'
     },
     'assets': [
       {
@@ -157,7 +157,7 @@ const nativeServerResponse = {
         'img': {
           'w': 15,
           'h': 15,
-          'url': 'http://files.ssp.theadtech.com.s3.amazonaws.com/media/image/sxjermpz/scalecrop-15x15'
+          'url': 'https://files.ssp.theadtech.com.s3.amazonaws.com/media/image/sxjermpz/scalecrop-15x15'
         }
       },
       {
@@ -172,7 +172,7 @@ const nativeServerResponse = {
         'img': {
           'w': 500,
           'h': 500,
-          'url': 'http://files.ssp.theadtech.com.s3.amazonaws.com/media/image/sxjermpz/scalecrop-500x500'
+          'url': 'https://files.ssp.theadtech.com.s3.amazonaws.com/media/image/sxjermpz/scalecrop-500x500'
         }
       },
       {
@@ -191,7 +191,7 @@ const nativeServerResponse = {
       {
         'id': 2003,
         'data': {
-          'value': 'http://elasticad.net'
+          'value': 'https://elasticad.net'
         }
       }
     ],
@@ -199,42 +199,42 @@ const nativeServerResponse = {
     'ver': '1.1'
   },
   'sync': [
-    'http://match.adsrvr.org/track/cmb/generic?ttd_pid=s6e8ued&ttd_tpi=1'
+    'https://match.adsrvr.org/track/cmb/generic?ttd_pid=s6e8ued&ttd_tpi=1'
   ]
 }
 
-describe('quantumBidAdapter', () => {
+describe('quantumBidAdapter', function () {
   const adapter = newBidder(spec)
 
-  describe('inherited functions', () => {
-    it('exists and is a function', () => {
+  describe('inherited functions', function () {
+    it('exists and is a function', function () {
       expect(adapter.callBids).to.exist.and.to.be.a('function')
     })
   })
 
-  describe('isBidRequestValid', () => {
-    it('should return true when required params found', () => {
+  describe('isBidRequestValid', function () {
+    it('should return true when required params found', function () {
       expect(spec.isBidRequestValid(REQUEST)).to.equal(true)
     })
 
-    it('should return false when required params are not passed', () => {
+    it('should return false when required params are not passed', function () {
       let bid = Object.assign({}, REQUEST)
       delete bid.params
       expect(spec.isBidRequestValid(bid)).to.equal(false)
     })
   })
 
-  describe('buildRequests', () => {
+  describe('buildRequests', function () {
     let bidRequests = [REQUEST]
 
     const request = spec.buildRequests(bidRequests, {})
 
-    it('sends bid request to ENDPOINT via GET', () => {
+    it('sends bid request to ENDPOINT via GET', function () {
       expect(request[0].method).to.equal('GET')
     })
   })
 
-  describe('GDPR conformity', () => {
+  describe('GDPR conformity', function () {
     const bidRequests = [{
       'bidder': 'quantum',
       'mediaType': 'native',
@@ -256,7 +256,7 @@ describe('quantumBidAdapter', () => {
       }
     };
 
-    it('should transmit correct data', () => {
+    it('should transmit correct data', function () {
       const requests = spec.buildRequests(bidRequests, bidderRequest);
       expect(requests.length).to.equal(1);
       expect(requests[0].data.quantx_gdpr).to.equal(1);
@@ -264,7 +264,7 @@ describe('quantumBidAdapter', () => {
     });
   });
 
-  describe('GDPR absence conformity', () => {
+  describe('GDPR absence conformity', function () {
     const bidRequests = [{
       'bidder': 'quantum',
       'mediaType': 'native',
@@ -283,7 +283,7 @@ describe('quantumBidAdapter', () => {
       gdprConsent: undefined
     };
 
-    it('should transmit correct data', () => {
+    it('should transmit correct data', function () {
       const requests = spec.buildRequests(bidRequests, bidderRequest);
       expect(requests.length).to.equal(1);
       expect(requests[0].data.quantx_gdpr).to.be.undefined;
@@ -291,13 +291,13 @@ describe('quantumBidAdapter', () => {
     });
   });
 
-  describe('interpretResponse', () => {
+  describe('interpretResponse', function () {
     let bidderRequest = {
       bidderCode: 'bidderCode',
       bids: []
     }
 
-    it('handles native request : should get correct bid response', () => {
+    it('handles native request : should get correct bid response', function () {
       const result = spec.interpretResponse({body: nativeServerResponse}, NATIVE_REQUEST)
       expect(result[0]).to.have.property('cpm').equal(0.3)
       expect(result[0]).to.have.property('width').to.be.below(2)
@@ -306,7 +306,7 @@ describe('quantumBidAdapter', () => {
       expect(result[0]).to.have.property('native')
     })
 
-    it('should get correct bid response', () => {
+    it('should get correct bid response', function () {
       const result = spec.interpretResponse({body: serverResponse}, REQUEST)
       expect(result[0]).to.have.property('cpm').equal(0.3)
       expect(result[0]).to.have.property('width').equal(300)
@@ -315,7 +315,7 @@ describe('quantumBidAdapter', () => {
       expect(result[0]).to.have.property('ad')
     })
 
-    it('handles nobid responses', () => {
+    it('handles nobid responses', function () {
       const nobidServerResponse = {bids: []}
       const nobidResult = spec.interpretResponse({body: nobidServerResponse}, bidderRequest)
       // console.log(nobidResult)

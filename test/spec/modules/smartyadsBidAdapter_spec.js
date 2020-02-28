@@ -1,7 +1,7 @@
 import {expect} from 'chai';
-import {spec} from '../../../modules/smartyadsBidAdapter';
+import {spec} from '../../../modules/smartyadsBidAdapter.js';
 
-describe('SmartyadsAdapter', () => {
+describe('SmartyadsAdapter', function () {
   let bid = {
     bidId: '23fhj33i987f',
     bidder: 'smartyads',
@@ -11,31 +11,31 @@ describe('SmartyadsAdapter', () => {
     }
   };
 
-  describe('isBidRequestValid', () => {
-    it('Should return true if there are bidId, params and placementId parameters present', () => {
+  describe('isBidRequestValid', function () {
+    it('Should return true if there are bidId, params and placementId parameters present', function () {
       expect(spec.isBidRequestValid(bid)).to.be.true;
     });
-    it('Should return false if at least one of parameters is not present', () => {
+    it('Should return false if at least one of parameters is not present', function () {
       delete bid.params.placementId;
       expect(spec.isBidRequestValid(bid)).to.be.false;
     });
   });
 
-  describe('buildRequests', () => {
+  describe('buildRequests', function () {
     let serverRequest = spec.buildRequests([bid]);
-    it('Creates a ServerRequest object with method, URL and data', () => {
+    it('Creates a ServerRequest object with method, URL and data', function () {
       expect(serverRequest).to.exist;
       expect(serverRequest.method).to.exist;
       expect(serverRequest.url).to.exist;
       expect(serverRequest.data).to.exist;
     });
-    it('Returns POST method', () => {
+    it('Returns POST method', function () {
       expect(serverRequest.method).to.equal('POST');
     });
-    it('Returns valid URL', () => {
-      expect(serverRequest.url).to.equal('//ssp-nj.webtradehub.com/?c=o&m=multi');
+    it('Returns valid URL', function () {
+      expect(serverRequest.url).to.equal('https://ssp-nj.webtradehub.com/?c=o&m=multi');
     });
-    it('Returns valid data if array of bids is valid', () => {
+    it('Returns valid data if array of bids is valid', function () {
       let data = serverRequest.data;
       expect(data).to.be.an('object');
       expect(data).to.have.all.keys('deviceWidth', 'deviceHeight', 'language', 'secure', 'host', 'page', 'placements');
@@ -46,19 +46,19 @@ describe('SmartyadsAdapter', () => {
       expect(data.host).to.be.a('string');
       expect(data.page).to.be.a('string');
       let placement = data['placements'][0];
-      expect(placement).to.have.keys('placementId', 'bidId', 'traffic');
+      expect(placement).to.have.keys('placementId', 'bidId', 'traffic', 'sizes');
       expect(placement.placementId).to.equal(0);
       expect(placement.bidId).to.equal('23fhj33i987f');
       expect(placement.traffic).to.equal('banner');
     });
-    it('Returns empty data if no valid requests are passed', () => {
+    it('Returns empty data if no valid requests are passed', function () {
       serverRequest = spec.buildRequests([]);
       let data = serverRequest.data;
       expect(data.placements).to.be.an('array').that.is.empty;
     });
   });
-  describe('interpretResponse', () => {
-    it('Should interpret banner response', () => {
+  describe('interpretResponse', function () {
+    it('Should interpret banner response', function () {
       const banner = {
         body: [{
           mediaType: 'banner',
@@ -78,7 +78,7 @@ describe('SmartyadsAdapter', () => {
       expect(bannerResponses).to.be.an('array').that.is.not.empty;
       let dataItem = bannerResponses[0];
       expect(dataItem).to.have.all.keys('requestId', 'cpm', 'width', 'height', 'ad', 'ttl', 'creativeId',
-        'netRevenue', 'currency', 'dealId');
+        'netRevenue', 'currency', 'dealId', 'mediaType');
       expect(dataItem.requestId).to.equal('23fhj33i987f');
       expect(dataItem.cpm).to.equal(0.4);
       expect(dataItem.width).to.equal(300);
@@ -89,7 +89,7 @@ describe('SmartyadsAdapter', () => {
       expect(dataItem.netRevenue).to.be.true;
       expect(dataItem.currency).to.equal('USD');
     });
-    it('Should interpret video response', () => {
+    it('Should interpret video response', function () {
       const video = {
         body: [{
           vastUrl: 'test.com',
@@ -108,8 +108,7 @@ describe('SmartyadsAdapter', () => {
 
       let dataItem = videoResponses[0];
       expect(dataItem).to.have.all.keys('requestId', 'cpm', 'vastUrl', 'ttl', 'creativeId',
-        'netRevenue', 'currency', 'dealId');
-      expect(dataItem.mediaType).to.not.exist;
+        'netRevenue', 'currency', 'dealId', 'mediaType');
       expect(dataItem.requestId).to.equal('23fhj33i987f');
       expect(dataItem.cpm).to.equal(0.5);
       expect(dataItem.vastUrl).to.equal('test.com');
@@ -118,14 +117,16 @@ describe('SmartyadsAdapter', () => {
       expect(dataItem.netRevenue).to.be.true;
       expect(dataItem.currency).to.equal('USD');
     });
-    it('Should interpret native response', () => {
+    it('Should interpret native response', function () {
       const native = {
         body: [{
           mediaType: 'native',
-          clickUrl: 'test.com',
-          title: 'Test',
-          image: 'test.com',
-          impressionTrackers: ['test.com'],
+          native: {
+            clickUrl: 'test.com',
+            title: 'Test',
+            image: 'test.com',
+            impressionTrackers: ['test.com'],
+          },
           ttl: 120,
           cpm: 0.4,
           requestId: '23fhj33i987f',
@@ -138,21 +139,21 @@ describe('SmartyadsAdapter', () => {
       expect(nativeResponses).to.be.an('array').that.is.not.empty;
 
       let dataItem = nativeResponses[0];
-      expect(dataItem).to.have.keys('requestId', 'cpm', 'clickUrl', 'impressionTrackers', 'title', 'image', 'ttl', 'creativeId', 'netRevenue', 'currency');
-      expect(dataItem.mediaType).to.not.exist;
+      expect(dataItem).to.have.keys('requestId', 'cpm', 'ttl', 'creativeId', 'netRevenue', 'currency', 'mediaType', 'native');
+      expect(dataItem.native).to.have.keys('clickUrl', 'impressionTrackers', 'title', 'image')
       expect(dataItem.requestId).to.equal('23fhj33i987f');
       expect(dataItem.cpm).to.equal(0.4);
-      expect(dataItem.clickUrl).to.equal('test.com');
-      expect(dataItem.title).to.equal('Test');
-      expect(dataItem.image).to.equal('test.com');
-      expect(dataItem.impressionTrackers).to.be.an('array').that.is.not.empty;
-      expect(dataItem.impressionTrackers[0]).to.equal('test.com');
+      expect(dataItem.native.clickUrl).to.equal('test.com');
+      expect(dataItem.native.title).to.equal('Test');
+      expect(dataItem.native.image).to.equal('test.com');
+      expect(dataItem.native.impressionTrackers).to.be.an('array').that.is.not.empty;
+      expect(dataItem.native.impressionTrackers[0]).to.equal('test.com');
       expect(dataItem.ttl).to.equal(120);
       expect(dataItem.creativeId).to.equal('2');
       expect(dataItem.netRevenue).to.be.true;
       expect(dataItem.currency).to.equal('USD');
     });
-    it('Should return an empty array if invalid banner response is passed', () => {
+    it('Should return an empty array if invalid banner response is passed', function () {
       const invBanner = {
         body: [{
           width: 300,
@@ -170,7 +171,7 @@ describe('SmartyadsAdapter', () => {
       let serverResponses = spec.interpretResponse(invBanner);
       expect(serverResponses).to.be.an('array').that.is.empty;
     });
-    it('Should return an empty array if invalid video response is passed', () => {
+    it('Should return an empty array if invalid video response is passed', function () {
       const invVideo = {
         body: [{
           mediaType: 'video',
@@ -186,7 +187,7 @@ describe('SmartyadsAdapter', () => {
       let serverResponses = spec.interpretResponse(invVideo);
       expect(serverResponses).to.be.an('array').that.is.empty;
     });
-    it('Should return an empty array if invalid native response is passed', () => {
+    it('Should return an empty array if invalid native response is passed', function () {
       const invNative = {
         body: [{
           mediaType: 'native',
@@ -203,7 +204,7 @@ describe('SmartyadsAdapter', () => {
       let serverResponses = spec.interpretResponse(invNative);
       expect(serverResponses).to.be.an('array').that.is.empty;
     });
-    it('Should return an empty array if invalid response is passed', () => {
+    it('Should return an empty array if invalid response is passed', function () {
       const invalid = {
         body: [{
           ttl: 120,
@@ -217,14 +218,14 @@ describe('SmartyadsAdapter', () => {
       expect(serverResponses).to.be.an('array').that.is.empty;
     });
   });
-  describe('getUserSyncs', () => {
+  describe('getUserSyncs', function () {
     let userSync = spec.getUserSyncs();
-    it('Returns valid URL and type', () => {
+    it('Returns valid URL and type', function () {
       expect(userSync).to.be.an('array').with.lengthOf(1);
       expect(userSync[0].type).to.exist;
       expect(userSync[0].url).to.exist;
       expect(userSync[0].type).to.be.equal('image');
-      expect(userSync[0].url).to.be.equal('//ssp-nj.webtradehub.com/?c=o&m=cookie');
+      expect(userSync[0].url).to.be.equal('https://ssp-nj.webtradehub.com/?c=o&m=cookie');
     });
   });
 });

@@ -1,38 +1,69 @@
-import { registerBidder } from 'src/adapters/bidderFactory';
-import * as utils from 'src/utils';
-import { config } from 'src/config';
+import { registerBidder } from '../src/adapters/bidderFactory.js';
+import * as utils from '../src/utils.js';
+import { config } from '../src/config.js';
+import * as url from '../src/url.js';
+import { BANNER, NATIVE } from '../src/mediaTypes.js';
+import { getRefererInfo } from '../src/refererDetection.js';
 
 const BIDDER_CODE = 'medianet';
-const BID_URL = '//prebid.media.net/rtb/prebid';
+const BID_URL = 'https://prebid.media.net/rtb/prebid';
 const SLOT_VISIBILITY = {
   NOT_DETERMINED: 0,
   ABOVE_THE_FOLD: 1,
   BELOW_THE_FOLD: 2
 };
+const EVENTS = {
+  TIMEOUT_EVENT_NAME: 'client_timeout',
+  BID_WON_EVENT_NAME: 'client_bid_won'
+};
+const EVENT_PIXEL_URL = 'qsearch-a.akamaihd.net/log';
+
+let refererInfo = getRefererInfo();
+
+let mnData = {};
+mnData.urlData = {
+  domain: url.parse(refererInfo.referer).host,
+  page: refererInfo.referer,
+  isTop: refererInfo.reachedTop
+}
 
 $$PREBID_GLOBAL$$.medianetGlobals = {};
+
+function getTopWindowReferrer() {
+  try {
+    return window.top.document.referrer;
+  } catch (e) {
+    return document.referrer;
+  }
+}
 
 function siteDetails(site) {
   site = site || {};
   let siteData = {
-    domain: site.domain || utils.getTopWindowLocation().host,
-    page: site.page || utils.getTopWindowUrl(),
-    ref: site.ref || utils.getTopWindowReferrer()
+    domain: site.domain || mnData.urlData.domain,
+    page: site.page || mnData.urlData.page,
+    ref: site.ref || getTopWindowReferrer(),
+    isTop: site.isTop || mnData.urlData.isTop
   };
 
   return Object.assign(siteData, getPageMeta());
 }
 
 function getPageMeta() {
+  if (mnData.pageMeta) {
+    return mnData.pageMeta;
+  }
   let canonicalUrl = getUrlFromSelector('link[rel="canonical"]', 'href');
   let ogUrl = getUrlFromSelector('meta[property="og:url"]', 'content');
   let twitterUrl = getUrlFromSelector('meta[name="twitter:url"]', 'content');
 
-  return Object.assign({},
+  mnData.pageMeta = Object.assign({},
     canonicalUrl && { 'canonical_url': canonicalUrl },
     ogUrl && { 'og_url': ogUrl },
     twitterUrl && { 'twitter_url': twitterUrl }
   );
+
+  return mnData.pageMeta;
 }
 
 function getUrlFromSelector(selector, attribute) {
@@ -101,7 +132,7 @@ function getCoordinates(id) {
   return null;
 }
 
-function extParams(params, gdpr) {
+function extParams(params, gdpr, uspConsent) {
   let ext = {
     customer_id: params.cid,
     prebid_version: $$PREBID_GLOBAL$$.version
@@ -110,10 +141,17 @@ function extParams(params, gdpr) {
   if (ext.gdpr_applies) {
     ext.gdpr_consent_string = gdpr.consentString || '';
   }
+
+  ext.usp_applies = !!(uspConsent);
+  if (ext.usp_applies) {
+    ext.usp_consent_string = uspConsent || '';
+  }
+
   let windowSize = spec.getWindowSize();
   if (windowSize.w !== -1 && windowSize.h !== -1) {
     ext.screen = windowSize;
   }
+
   return ext;
 }
 
@@ -122,11 +160,23 @@ function slotParams(bidRequest) {
   let params = {
     id: bidRequest.bidId,
     ext: {
-      dfp_id: bidRequest.adUnitCode
+      dfp_id: bidRequest.adUnitCode,
+      display_count: bidRequest.bidRequestsCount
     },
-    banner: transformSizes(bidRequest.sizes),
     all: bidRequest.params
   };
+  let bannerSizes = utils.deepAccess(bidRequest, 'mediaTypes.banner.sizes') || bidRequest.sizes || [];
+
+  if (bannerSizes.length > 0) {
+    params.banner = transformSizes(bannerSizes);
+  }
+  if (bidRequest.nativeParams) {
+    try {
+      params.native = JSON.stringify(bidRequest.nativeParams);
+    } catch (e) {
+      utils.logError((`${BIDDER_CODE} : Incorrect JSON : bidRequest.nativeParams`));
+    }
+  }
 
   if (bidRequest.params.crid) {
     params.tagid = bidRequest.params.crid.toString();
@@ -137,7 +187,7 @@ function slotParams(bidRequest) {
     params.bidfloor = bidFloor;
   }
   const coordinates = getCoordinates(bidRequest.adUnitCode);
-  if (coordinates) {
+  if (coordinates && params.banner && params.banner.length !== 0) {
     let normCoordinates = normalizeCoordinates(coordinates);
     params.ext.coordinates = normCoordinates;
     params.ext.viewability = getSlotVisibility(coordinates.top_left, getMinSize(params.banner));
@@ -197,7 +247,7 @@ function normalizeCoordinates(coordinates) {
 function generatePayload(bidRequests, bidderRequests) {
   return {
     site: siteDetails(bidRequests[0].params.site),
-    ext: extParams(bidRequests[0].params, bidderRequests.gdprConsent),
+    ext: extParams(bidRequests[0].params, bidderRequests.gdprConsent, bidderRequests.uspConsent),
     id: bidRequests[0].auctionId,
     imp: bidRequests.map(request => slotParams(request)),
     tmax: bidderRequests.timeout || config.getConfig('bidderTimeout')
@@ -217,9 +267,45 @@ function fetchCookieSyncUrls(response) {
   return [];
 }
 
+function getLoggingData(event, data) {
+  data = (utils.isArray(data) && data) || [];
+
+  let params = {};
+  params.logid = 'kfk';
+  params.evtid = 'projectevents';
+  params.project = 'prebid';
+  params.acid = utils.deepAccess(data, '0.auctionId') || '';
+  params.cid = $$PREBID_GLOBAL$$.medianetGlobals.cid || '';
+  params.crid = data.map((adunit) => utils.deepAccess(adunit, 'params.0.crid') || adunit.adUnitCode).join('|');
+  params.adunit_count = data.length || 0;
+  params.dn = mnData.urlData.domain || '';
+  params.requrl = mnData.urlData.page || '';
+  params.istop = mnData.urlData.isTop || '';
+  params.event = event.name || '';
+  params.value = event.value || '';
+  params.rd = event.related_data || '';
+
+  return params;
+}
+
+function logEvent (event, data) {
+  let getParams = {
+    protocol: 'https',
+    hostname: EVENT_PIXEL_URL,
+    search: getLoggingData(event, data)
+  };
+  utils.triggerPixel(url.format(getParams));
+}
+
+function clearMnData() {
+  mnData = {};
+}
+
 export const spec = {
 
   code: BIDDER_CODE,
+
+  supportedMediaTypes: [BANNER, NATIVE],
 
   /**
    * Determines whether or not the given bid request is valid.
@@ -294,6 +380,35 @@ export const spec = {
       return filterUrlsByType(cookieSyncUrls, 'image');
     }
   },
+
+  /**
+   * @param {TimedOutBid} timeoutData
+   */
+  onTimeout: (timeoutData) => {
+    try {
+      let eventData = {
+        name: EVENTS.TIMEOUT_EVENT_NAME,
+        value: timeoutData.length,
+        related_data: timeoutData[0].timeout || config.getConfig('bidderTimeout')
+      };
+      logEvent(eventData, timeoutData);
+    } catch (e) {}
+  },
+
+  /**
+   * @param {TimedOutBid} timeoutData
+   */
+  onBidWon: (bid) => {
+    try {
+      let eventData = {
+        name: EVENTS.BID_WON_EVENT_NAME,
+        value: bid.cpm
+      };
+      logEvent(eventData, [bid]);
+    } catch (e) {}
+  },
+
+  clearMnData,
 
   getWindowSize,
 };

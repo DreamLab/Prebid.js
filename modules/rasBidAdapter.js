@@ -1,33 +1,57 @@
-import * as utils from '../src/utils.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { BANNER } from '../src/mediaTypes.js';
 
 const BIDDER_CODE = 'ringieraxelspringer';
 const ENDPOINT_URL = 'https://csr.onet.pl/_s/csr-006/csr.json?';
 
+function parseParams(params) {
+  const newParams = {};
+  const pageContext = params.pageContext;
+  if (!pageContext) {
+    return {};
+  }
+  if (pageContext.dr) {
+    newParams.dr = pageContext.dr
+  }
+  if (pageContext.keyWords && Array.isArray(pageContext.keyWords)) {
+    newParams.kwrd = pageContext.keyWords.join('+')
+  }
+  if (pageContext.keyValues && typeof pageContext.keyValues === 'object') {
+    for (const param in pageContext.keyValues) {
+      if (pageContext.keyValues.hasOwnProperty(param)) {
+        const kvName = 'kv' + param;
+        newParams[kvName] = pageContext.keyValues[param]
+      }
+    }
+  }
+  return newParams;
+}
+
 function buildQueryParamsFromObject(bid) {
-  console.log('bid: ', bid);
-  let { params } = bid;
-  params = {
+  const { params } = bid;
+  const requestParams = {
     slot0: params.slot,
     nid: params.network,
     site: params.site,
     area: params.area,
     cre_format: 'html',
     systems: 'das',
-    is_ems: 1,
+    ems_url: 1,
     bid_rate: 1,
-    kvIR: bid.bidId
+    ...parseParams(params)
   };
-  return Object.keys(params).map((key) => key + '=' + encodeURIComponent(params[key])).join('&');
+  return {
+    payload: Object.keys(requestParams).map((key) => key + '=' + encodeURIComponent(requestParams[key])).join('&'),
+    bidId: bid.bidId
+  };
 }
 
-const buildBid = (response) => (ad) => {
+const buildBid = (bidId) => (ad) => {
   if (ad.type === 'empty') {
     return {}
   }
   return {
-    requestId: response.ir,
+    requestId: bidId,
     cpm: ad.bid_rate.toFixed(2),
     adId: ad.adid,
     width: ad.width,
@@ -47,7 +71,6 @@ export const spec = {
   supportedMediaTypes: [BANNER],
 
   isBidRequestValid: function (bidRequest) {
-    console.log('bidRequest: ', bidRequest);
     if (!bidRequest || !bidRequest.params || typeof bidRequest.params !== 'object') {
       return;
     }
@@ -57,10 +80,10 @@ export const spec = {
 
   buildRequests: function (bidRequests, bidderRequest) {
     const requestsQuery = bidRequests.map(buildQueryParamsFromObject);
-    console.log('requestsQuery: ', requestsQuery);
     return requestsQuery.map((query) => ({
       method: 'POST',
-      url: ENDPOINT_URL + query
+      url: ENDPOINT_URL + query.payload,
+      bidId: query.bidId
     }));
   },
 
@@ -69,13 +92,7 @@ export const spec = {
     if (!response || !response.ads || response.ads.length === 0) {
       return [];
     }
-    if (response.debug) {
-      utils.logInfo(`CSR DEBUG: serverResponse -> ${serverResponse}`);
-      utils.logInfo(`CSR DEBUG: bidRequest -> ${bidRequest}`);
-      utils.logInfo(`CSR DEBUG: interpretResponse -> ${response.ads.map(buildBid(response))}`)
-    }
-    console.log('response.ads.map(buildBid(response))', response.ads.map(buildBid(response)));
-    return response.ads.map(buildBid(response));
+    return response.ads.map(buildBid(bidRequest.bidId));
   },
 
   getUserSyncs: function (syncOptions, serverResponses) {
@@ -86,8 +103,7 @@ export const spec = {
    * @param {data} Containing timeout specific data
    */
   onTimeout: function (data) {
-    console.log('onTimeout: ', data)
-    // Bidder specifc code
+    // onTimeout
   },
 
   /**
@@ -95,7 +111,7 @@ export const spec = {
    * @param {Bid} The bid that won the auction
    */
   onBidWon: function (bid) {
-    console.log('onBidWon: ', bid);
+    // onBidWon
   },
 
   /**
@@ -103,7 +119,7 @@ export const spec = {
    * @param {Bid} The bid of which the targeting has been set
    */
   onSetTargeting: function (bid) {
-    console.log('onSetTargeting: ', bid);
+    // onSetTargeting
   }
 };
 

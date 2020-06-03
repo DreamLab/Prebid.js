@@ -1,9 +1,8 @@
 // jshint esversion: 6, es3: false, node: true
 import {assert, expect} from 'chai';
-import * as url from 'src/url';
-import {spec} from 'modules/adformOpenRTBBidAdapter';
-import { NATIVE } from 'src/mediaTypes';
-import { config } from 'src/config';
+import {spec} from 'modules/adformOpenRTBBidAdapter.js';
+import { NATIVE } from 'src/mediaTypes.js';
+import { config } from 'src/config.js';
 
 describe('AdformOpenRTB adapter', function () {
   let serverResponse, bidRequest, bidResponses;
@@ -39,7 +38,7 @@ describe('AdformOpenRTB adapter', function () {
       let request = spec.buildRequests(validBidRequests, { refererInfo: { referer: 'page' } });
 
       assert.equal(request.method, 'POST');
-      assert.equal(request.url, '//10.8.57.207/adx/openrtb');
+      assert.equal(request.url, 'https://10.8.57.207/adx/openrtb');
       assert.deepEqual(request.options, {contentType: 'application/json'});
       assert.ok(request.data);
     });
@@ -384,9 +383,9 @@ describe('AdformOpenRTB adapter', function () {
       let serverResponse = {
         body: {
           seatbid: [{
-            bid: [{impid: 'impid1', native: {ver: '1.1', link: { url: 'link' }, assets: [{id: 1, title: {text: 'Asset title text'}}]}}]
+            bid: [{impid: '1', native: {ver: '1.1', link: { url: 'link' }, assets: [{id: 1, title: {text: 'Asset title text'}}]}}]
           }, {
-            bid: [{impid: 'impid2', native: {ver: '1.1', link: { url: 'link' }, assets: [{id: 1, data: {value: 'Asset title text'}}]}}]
+            bid: [{impid: '2', native: {ver: '1.1', link: { url: 'link' }, assets: [{id: 1, data: {value: 'Asset title text'}}]}}]
           }]
         }
       };
@@ -417,6 +416,71 @@ describe('AdformOpenRTB adapter', function () {
       bids = spec.interpretResponse(serverResponse, bidRequest);
       assert.equal(spec.interpretResponse(serverResponse, bidRequest).length, 2);
     });
+
+    it('should parse seatbids', function () {
+      let serverResponse = {
+        body: {
+          seatbid: [{
+            bid: [
+              {impid: '1', native: {ver: '1.1', link: { url: 'link1' }, assets: [{id: 1, title: {text: 'Asset title text'}}]}},
+              {impid: '4', native: {ver: '1.1', link: { url: 'link4' }, assets: [{id: 1, title: {text: 'Asset title text'}}]}}
+            ]
+          }, {
+            bid: [{impid: '2', native: {ver: '1.1', link: { url: 'link2' }, assets: [{id: 1, data: {value: 'Asset title text'}}]}}]
+          }]
+        }
+      };
+      let bidRequest = {
+        data: {},
+        bids: [
+          {
+            bidId: 'bidId1',
+            params: { siteId: 'siteId', mid: 1000 },
+            nativeParams: {
+              title: { required: true, len: 140 },
+              image: { required: false, wmin: 836, hmin: 627, w: 325, h: 300, mimes: ['image/jpg', 'image/gif'] },
+              body: { len: 140 }
+            }
+          },
+          {
+            bidId: 'bidId2',
+            params: { siteId: 'siteId', mid: 1000 },
+            nativeParams: {
+              title: { required: true, len: 140 },
+              image: { required: false, wmin: 836, hmin: 627, w: 325, h: 300, mimes: ['image/jpg', 'image/gif'] },
+              body: { len: 140 }
+            }
+          },
+          {
+            bidId: 'bidId3',
+            params: { siteId: 'siteId', mid: 1000 },
+            nativeParams: {
+              title: { required: true, len: 140 },
+              image: { required: false, wmin: 836, hmin: 627, w: 325, h: 300, mimes: ['image/jpg', 'image/gif'] },
+              body: { len: 140 }
+            }
+          },
+          {
+            bidId: 'bidId4',
+            params: { siteId: 'siteId', mid: 1000 },
+            nativeParams: {
+              title: { required: true, len: 140 },
+              image: { required: false, wmin: 836, hmin: 627, w: 325, h: 300, mimes: ['image/jpg', 'image/gif'] },
+              body: { len: 140 }
+            }
+          }
+        ]
+      };
+
+      bids = spec.interpretResponse(serverResponse, bidRequest).map(bid => {
+        const { requestId, native: { clickUrl } } = bid;
+        return [ requestId, clickUrl ];
+      });
+
+      assert.equal(bids.length, 3);
+      assert.deepEqual(bids, [[ 'bidId1', 'link1' ], [ 'bidId2', 'link2' ], [ 'bidId4', 'link4' ]]);
+    });
+
     it('should set correct values to bid', function () {
       let serverResponse = {
         body: {
@@ -425,7 +489,7 @@ describe('AdformOpenRTB adapter', function () {
           seatbid: [{
             bid: [
               {
-                impid: 'impid1',
+                impid: '1',
                 price: 93.1231,
                 crid: '12312312',
                 native: {
@@ -468,7 +532,7 @@ describe('AdformOpenRTB adapter', function () {
     it('should set correct native params', function () {
       const bid = [
         {
-          impid: 'impid1',
+          impid: '1',
           price: 93.1231,
           crid: '12312312',
           native: {

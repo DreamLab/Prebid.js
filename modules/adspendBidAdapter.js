@@ -1,15 +1,14 @@
-import * as utils from '../src/utils.js';
-import { ajax } from '../src/ajax.js'
-import { config } from '../src/config.js';
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import { BANNER } from '../src/mediaTypes.js';
-import { getStorageManager } from '../src/storageManager.js';
+import * as utils from '../src/utils';
+import { ajax } from '../src/ajax'
+import { config } from '../src/config';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import { BANNER } from '../src/mediaTypes';
 
-const storage = getStorageManager();
 const BIDDER_CODE = 'adspend';
-const BID_URL = 'https://rtb.com.ru/headerbidding-bid';
-const SYNC_URL = 'https://rtb.com.ru/headerbidding-sync?uid={UUID}';
+const BID_URL = '//rtb.com.ru/headerbidding-bid';
+const SYNC_URL = '//rtb.com.ru/headerbidding-sync?uid={UUID}';
 const COOKIE_NAME = 'hb-adspend-id';
+const UUID_LEN = 36;
 const TTL = 10000;
 const RUB = 'RUB';
 const FIRST_PRICE = 1;
@@ -42,7 +41,7 @@ export const spec = {
       bid.params.bidfloor &&
       bid.crumbs.pubcid &&
       utils.checkCookieSupport() &&
-      storage.cookiesAreEnabled()
+      utils.cookiesAreEnabled()
     );
   },
 
@@ -147,14 +146,16 @@ export const spec = {
 }
 
 const getUserID = () => {
-  const i = storage.getCookie(COOKIE_NAME);
+  const i = document.cookie.indexOf(COOKIE_NAME);
 
-  if (i === null) {
+  if (i === -1) {
     const uuid = utils.generateUUID();
-    storage.setCookie(COOKIE_NAME, uuid);
+    document.cookie = `${COOKIE_NAME}=${uuid}; path=/`;
     return uuid;
   }
-  return i;
+
+  const j = i + COOKIE_NAME.length + 1;
+  return document.cookie.substring(j, j + UUID_LEN);
 };
 
 const getFormats = arr => arr.map((s) => {

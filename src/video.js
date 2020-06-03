@@ -1,12 +1,11 @@
-import adapterManager from './adapterManager.js';
-import { getBidRequest, deepAccess, logError } from './utils.js';
-import { config } from '../src/config.js';
-import includes from 'core-js-pure/features/array/includes.js';
-import { hook } from './hook.js';
+import adapterManager from './adapterManager';
+import { getBidRequest, deepAccess, logError } from './utils';
+import { config } from '../src/config';
+import includes from 'core-js/library/fn/array/includes';
+import { hook } from './hook';
 
 const VIDEO_MEDIA_TYPE = 'video';
 export const OUTSTREAM = 'outstream';
-export const INSTREAM = 'instream';
 
 /**
  * Helper functions for working with video-enabled adUnits

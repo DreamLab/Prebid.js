@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { spec } from 'modules/bidglassBidAdapter.js';
-import { newBidder } from 'src/adapters/bidderFactory.js';
+import { spec } from 'modules/bidglassBidAdapter';
+import { newBidder } from 'src/adapters/bidderFactory';
 
 describe('Bid Glass Adapter', function () {
   const adapter = newBidder(spec);

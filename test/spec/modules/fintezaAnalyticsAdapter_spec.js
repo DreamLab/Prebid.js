@@ -1,26 +1,21 @@
-import fntzAnalyticsAdapter from 'modules/fintezaAnalyticsAdapter.js';
-import includes from 'core-js-pure/features/array/includes.js';
+import fntzAnalyticsAdapter from 'modules/fintezaAnalyticsAdapter';
+import includes from 'core-js/library/fn/array/includes';
 import { expect } from 'chai';
-import { parseUrl } from 'src/utils.js';
-import { server } from 'test/mocks/xhr.js';
-
+import { parse as parseURL } from 'src/url';
 let adapterManager = require('src/adapterManager').default;
 let events = require('src/events');
 let constants = require('src/constants.json');
 
-function setCookie(name, value, expires) {
-  document.cookie = name + '=' + value +
-    '; path=/' +
-    (expires ? ('; expires=' + expires.toUTCString()) : '') +
-    '; SameSite=None';
-}
-
 describe('finteza analytics adapter', function () {
   const clientId = 'fntz-client-32145';
-  const uniqCookie = '5045380421580287382';
+
+  let xhr;
+  let requests;
 
   beforeEach(function () {
-    setCookie('_fz_uniq', uniqCookie);
+    xhr = sinon.useFakeXMLHttpRequest();
+    requests = [];
+    xhr.onCreate = request => { requests.push(request) };
     sinon.stub(events, 'getEvents').returns([]);
     sinon.spy(fntzAnalyticsAdapter, 'track');
 
@@ -43,7 +38,7 @@ describe('finteza analytics adapter', function () {
   });
 
   afterEach(function () {
-    setCookie('_fz_uniq', '', new Date(0));
+    xhr.restore();
     events.getEvents.restore();
     fntzAnalyticsAdapter.track.restore();
     fntzAnalyticsAdapter.disableAnalytics();
@@ -76,18 +71,16 @@ describe('finteza analytics adapter', function () {
         // Emit the events with the "real" arguments
         events.emit(constants.EVENTS.BID_REQUESTED, bidRequest);
 
-        expect(server.requests.length).to.equal(1);
+        expect(requests.length).to.equal(1);
 
-        expect(server.requests[0].method).to.equal('GET');
-        expect(server.requests[0].withCredentials).to.equal(true);
+        expect(requests[0].method).to.equal('GET');
 
-        const url = parseUrl(server.requests[0].url);
+        const url = parseURL(requests[0].url);
 
         expect(url.protocol).to.equal('https');
         expect(url.hostname).to.equal('content.mql5.com');
         expect(url.pathname).to.equal('/tr');
         expect(url.search.id).to.equal(clientId);
-        expect(url.search.fz_uniq).to.equal(uniqCookie);
         expect(decodeURIComponent(url.search.event)).to.equal(`Bid Request ${bidderCode.toUpperCase()}`);
 
         sinon.assert.callCount(fntzAnalyticsAdapter.track, 1);
@@ -119,32 +112,28 @@ describe('finteza analytics adapter', function () {
         // Emit the events with the "real" arguments
         events.emit(constants.EVENTS.BID_RESPONSE, bidResponse);
 
-        expect(server.requests.length).to.equal(2);
+        expect(requests.length).to.equal(2);
 
-        expect(server.requests[0].method).to.equal('GET');
-        expect(server.requests[0].withCredentials).to.equal(true);
+        expect(requests[0].method).to.equal('GET');
 
-        let url = parseUrl(server.requests[0].url);
+        let url = parseURL(requests[0].url);
 
         expect(url.protocol).to.equal('https');
         expect(url.hostname).to.equal('content.mql5.com');
         expect(url.pathname).to.equal('/tr');
         expect(url.search.id).to.equal(clientId);
-        expect(url.search.fz_uniq).to.equal(uniqCookie);
         expect(decodeURIComponent(url.search.event)).to.equal(`Bid Response Price ${bidderCode.toLowerCase()}`);
         expect(url.search.value).to.equal(String(cpm));
         expect(url.search.unit).to.equal('usd');
 
-        expect(server.requests[1].method).to.equal('GET');
-        expect(server.requests[1].withCredentials).to.equal(true);
+        expect(requests[1].method).to.equal('GET');
 
-        url = parseUrl(server.requests[1].url);
+        url = parseURL(requests[1].url);
 
         expect(url.protocol).to.equal('https');
         expect(url.hostname).to.equal('content.mql5.com');
         expect(url.pathname).to.equal('/tr');
         expect(url.search.id).to.equal(clientId);
-        expect(url.search.fz_uniq).to.equal(uniqCookie);
         expect(decodeURIComponent(url.search.event)).to.equal(`Bid Response Time ${bidderCode.toLowerCase()}`);
         expect(url.search.value).to.equal(String(timeToRespond));
         expect(url.search.unit).to.equal('ms');
@@ -173,18 +162,16 @@ describe('finteza analytics adapter', function () {
         // Emit the events with the "real" arguments
         events.emit(constants.EVENTS.BID_WON, bidWon);
 
-        expect(server.requests.length).to.equal(1);
+        expect(requests.length).to.equal(1);
 
-        expect(server.requests[0].method).to.equal('GET');
-        expect(server.requests[0].withCredentials).to.equal(true);
+        expect(requests[0].method).to.equal('GET');
 
-        const url = parseUrl(server.requests[0].url);
+        const url = parseURL(requests[0].url);
 
         expect(url.protocol).to.equal('https');
         expect(url.hostname).to.equal('content.mql5.com');
         expect(url.pathname).to.equal('/tr');
         expect(url.search.id).to.equal(clientId);
-        expect(url.search.fz_uniq).to.equal(uniqCookie);
         expect(decodeURIComponent(url.search.event)).to.equal(`Bid Won ${bidderCode.toUpperCase()}`);
         expect(url.search.value).to.equal(String(cpm));
         expect(url.search.unit).to.equal('usd');
@@ -212,18 +199,16 @@ describe('finteza analytics adapter', function () {
         // Emit the events with the "real" arguments
         events.emit(constants.EVENTS.BID_TIMEOUT, bidTimeout);
 
-        expect(server.requests.length).to.equal(1);
+        expect(requests.length).to.equal(1);
 
-        expect(server.requests[0].method).to.equal('GET');
-        expect(server.requests[0].withCredentials).to.equal(true);
+        expect(requests[0].method).to.equal('GET');
 
-        const url = parseUrl(server.requests[0].url);
+        const url = parseURL(requests[0].url);
 
         expect(url.protocol).to.equal('https');
         expect(url.hostname).to.equal('content.mql5.com');
         expect(url.pathname).to.equal('/tr');
         expect(url.search.id).to.equal(clientId);
-        expect(url.search.fz_uniq).to.equal(uniqCookie);
         expect(decodeURIComponent(url.search.event)).to.equal(`Bid Timeout Bidder789`);
         expect(url.search.value).to.equal(String(timeout));
         expect(url.search.unit).to.equal('ms');

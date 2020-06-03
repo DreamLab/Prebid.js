@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { spec } from 'modules/adliveBidAdapter.js';
+import { spec } from 'modules/adliveBidAdapter';
 
 describe('adliveBidAdapterTests', function() {
   let bidRequestData = {

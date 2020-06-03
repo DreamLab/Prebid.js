@@ -1,20 +1,19 @@
 /** @module adaptermanger */
 
-import { flatten, getBidderCodes, getDefinedParams, shuffle, timestamp, getBidderRequest, bind } from './utils.js';
-import { getLabels, resolveStatus } from './sizeMapping.js';
-import { processNativeAdUnitParams, nativeAdapters } from './native.js';
-import { newBidder } from './adapters/bidderFactory.js';
-import { ajaxBuilder } from './ajax.js';
-import { config, RANDOM } from './config.js';
-import { hook } from './hook.js';
-import includes from 'core-js-pure/features/array/includes.js';
-import find from 'core-js-pure/features/array/find.js';
-import { adunitCounter } from './adUnits.js';
-import { getRefererInfo } from './refererDetection.js';
+import { flatten, getBidderCodes, getDefinedParams, shuffle, timestamp, getBidderRequest } from './utils';
+import { getLabels, resolveStatus } from './sizeMapping';
+import { processNativeAdUnitParams, nativeAdapters } from './native';
+import { newBidder } from './adapters/bidderFactory';
+import { ajaxBuilder } from './ajax';
+import { config, RANDOM } from './config';
+import includes from 'core-js/library/fn/array/includes';
+import find from 'core-js/library/fn/array/find';
+import { adunitCounter } from './adUnits';
+import { getRefererInfo } from './refererDetection';
 
 var utils = require('./utils.js');
 var CONSTANTS = require('./constants.json');
-var events = require('./events.js');
+var events = require('./events');
 let s2sTestingModule; // store s2sTesting module if it's loaded
 
 let adapterManager = {};
@@ -66,10 +65,8 @@ function getBids({bidderCode, auctionId, bidderRequestId, adUnits, labels, src})
           }
 
           bid = Object.assign({}, bid, getDefinedParams(adUnit, [
-            'fpd',
             'mediaType',
-            'renderer',
-            'storedAuctionResponse'
+            'renderer'
           ]));
 
           let {
@@ -103,9 +100,7 @@ function getBids({bidderCode, auctionId, bidderRequestId, adUnits, labels, src})
               bidderRequestId,
               auctionId,
               src,
-              bidRequestsCount: adunitCounter.getRequestsCounter(adUnit.code),
-              bidderRequestsCount: adunitCounter.getBidderRequestsCounter(adUnit.code, bid.bidder),
-              bidderWinsCount: adunitCounter.getBidderWinsCounter(adUnit.code, bid.bidder),
+              bidRequestsCount: adunitCounter.getCounter(adUnit.code),
             }));
           }
           return bids;
@@ -116,8 +111,6 @@ function getBids({bidderCode, auctionId, bidderRequestId, adUnits, labels, src})
   }, []).reduce(flatten, []).filter(val => val !== '');
 }
 
-const hookedGetBids = hook('sync', getBids, 'getBids');
-
 function getAdUnitCopyForPrebidServer(adUnits) {
   let adaptersServerSide = _s2sConfig.bidders;
   let adUnitsCopy = utils.deepClone(adUnits);
@@ -125,8 +118,7 @@ function getAdUnitCopyForPrebidServer(adUnits) {
   adUnitsCopy.forEach((adUnit) => {
     // filter out client side bids
     adUnit.bids = adUnit.bids.filter((bid) => {
-      return includes(adaptersServerSide, bid.bidder) &&
-        (!doingS2STesting() || bid.finalSource !== s2sTestingModule.CLIENT);
+      return includes(adaptersServerSide, bid.bidder) && (!doingS2STesting() || bid.finalSource !== s2sTestingModule.CLIENT);
     }).map((bid) => {
       bid.bid_id = utils.getUniqueIdentifierStr();
       return bid;
@@ -167,23 +159,7 @@ export let gdprDataHandler = {
   }
 };
 
-export let uspDataHandler = {
-  consentData: null,
-  setConsentData: function(consentInfo) {
-    uspDataHandler.consentData = consentInfo;
-  },
-  getConsentData: function() {
-    return uspDataHandler.consentData;
-  }
-};
-
-adapterManager.makeBidRequests = hook('sync', function (adUnits, auctionStart, auctionId, cbTimeout, labels) {
-  /**
-   * emit and pass adunits for external modification
-   * @see {@link https://github.com/prebid/Prebid.js/issues/4149|Issue}
-   */
-  events.emit(CONSTANTS.EVENTS.BEFORE_REQUEST_BIDS, adUnits);
-
+adapterManager.makeBidRequests = function(adUnits, auctionStart, auctionId, cbTimeout, labels) {
   let bidRequests = [];
 
   let bidderCodes = getBidderCodes(adUnits);
@@ -194,33 +170,20 @@ adapterManager.makeBidRequests = hook('sync', function (adUnits, auctionStart, a
 
   let clientBidderCodes = bidderCodes;
   let clientTestAdapters = [];
-
   if (_s2sConfig.enabled) {
     // if s2sConfig.bidderControl testing is turned on
     if (doingS2STesting()) {
       // get all adapters doing client testing
-      const bidderMap = s2sTestingModule.getSourceBidderMap(adUnits);
-      clientTestAdapters = bidderMap[s2sTestingModule.CLIENT];
+      clientTestAdapters = s2sTestingModule.getSourceBidderMap(adUnits)[s2sTestingModule.CLIENT];
     }
 
     // these are called on the s2s adapter
     let adaptersServerSide = _s2sConfig.bidders;
 
     // don't call these client side (unless client request is needed for testing)
-    clientBidderCodes = bidderCodes.filter(elm =>
-      !includes(adaptersServerSide, elm) || includes(clientTestAdapters, elm)
-    );
-
-    const adUnitsContainServerRequests = adUnits => Boolean(
-      find(adUnits, adUnit => find(adUnit.bids, bid => (
-        bid.bidSource ||
-        (_s2sConfig.bidderControl && _s2sConfig.bidderControl[bid.bidder])
-      ) && bid.finalSource === s2sTestingModule.SERVER))
-    );
-
-    if (isTestingServerOnly() && adUnitsContainServerRequests(adUnits)) {
-      clientBidderCodes.length = 0;
-    }
+    clientBidderCodes = bidderCodes.filter((elm) => {
+      return !includes(adaptersServerSide, elm) || includes(clientTestAdapters, elm);
+    });
 
     let adUnitsS2SCopy = getAdUnitCopyForPrebidServer(adUnits);
     let tid = utils.generateUUID();
@@ -231,7 +194,7 @@ adapterManager.makeBidRequests = hook('sync', function (adUnits, auctionStart, a
         auctionId,
         bidderRequestId,
         tid,
-        bids: hookedGetBids({bidderCode, auctionId, bidderRequestId, 'adUnits': utils.deepClone(adUnitsS2SCopy), labels, src: CONSTANTS.S2S.SRC}),
+        bids: getBids({bidderCode, auctionId, bidderRequestId, 'adUnits': utils.deepClone(adUnitsS2SCopy), labels, src: CONSTANTS.S2S.SRC}),
         auctionStart: auctionStart,
         timeout: _s2sConfig.timeout,
         src: CONSTANTS.S2S.SRC,
@@ -266,7 +229,7 @@ adapterManager.makeBidRequests = hook('sync', function (adUnits, auctionStart, a
       bidderCode,
       auctionId,
       bidderRequestId,
-      bids: hookedGetBids({bidderCode, auctionId, bidderRequestId, 'adUnits': utils.deepClone(adUnitsClientCopy), labels, src: 'client'}),
+      bids: getBids({bidderCode, auctionId, bidderRequestId, 'adUnits': utils.deepClone(adUnitsClientCopy), labels, src: 'client'}),
       auctionStart: auctionStart,
       timeout: cbTimeout,
       refererInfo
@@ -286,14 +249,8 @@ adapterManager.makeBidRequests = hook('sync', function (adUnits, auctionStart, a
       bidRequest['gdprConsent'] = gdprDataHandler.getConsentData();
     });
   }
-
-  if (uspDataHandler.getConsentData()) {
-    bidRequests.forEach(bidRequest => {
-      bidRequest['uspConsent'] = uspDataHandler.getConsentData();
-    });
-  }
   return bidRequests;
-}, 'makeBidRequests');
+};
 
 adapterManager.callBids = (adUnits, bidRequests, addBidResponse, doneCb, requestCallbacks, requestBidsTimeout, onTimelyResponse) => {
   if (!bidRequests.length) {
@@ -352,8 +309,6 @@ adapterManager.callBids = (adUnits, bidRequests, addBidResponse, doneCb, request
           s2sAjax
         );
       }
-    } else {
-      utils.logError('missing ' + _s2sConfig.adapter);
     }
   }
 
@@ -368,35 +323,13 @@ adapterManager.callBids = (adUnits, bidRequests, addBidResponse, doneCb, request
       request: requestCallbacks.request.bind(null, bidRequest.bidderCode),
       done: requestCallbacks.done
     } : undefined);
-    const adapterDone = doneCb.bind(bidRequest);
-    try {
-      config.runWithBidder(
-        bidRequest.bidderCode,
-        bind.call(
-          adapter.callBids,
-          adapter,
-          bidRequest,
-          addBidResponse.bind(bidRequest),
-          adapterDone,
-          ajax,
-          onTimelyResponse,
-          config.callbackWithBidder(bidRequest.bidderCode)
-        )
-      );
-    } catch (e) {
-      utils.logError(`${bidRequest.bidderCode} Bid Adapter emitted an uncaught error when parsing their bidRequest`, {e, bidRequest});
-      adapterDone();
-    }
+    adapter.callBids(bidRequest, addBidResponse.bind(bidRequest), doneCb.bind(bidRequest), ajax, onTimelyResponse);
   });
-};
+}
 
 function doingS2STesting() {
   return _s2sConfig && _s2sConfig.enabled && _s2sConfig.testing && s2sTestingModule;
 }
-
-function isTestingServerOnly() {
-  return Boolean(doingS2STesting() && _s2sConfig.testServerOnly);
-};
 
 function getSupportedMediaTypes(bidderCode) {
   let result = [];
@@ -513,7 +446,7 @@ function tryCallBidderMethod(bidder, method, param) {
     const spec = adapter.getSpec();
     if (spec && spec[method] && typeof spec[method] === 'function') {
       utils.logInfo(`Invoking ${bidder}.${method}`);
-      config.runWithBidder(bidder, bind.call(spec[method], spec, param));
+      spec[method](param);
     }
   } catch (e) {
     utils.logWarn(`Error calling ${method} of ${bidder}`);
@@ -537,7 +470,6 @@ adapterManager.callTimedOutBidders = function(adUnits, timedOutBidders, cbTimeou
 adapterManager.callBidWonBidder = function(bidder, bid, adUnits) {
   // Adding user configured params to bidWon event data
   bid.params = utils.getUserConfiguredParams(adUnits, bid.adUnitCode, bid.bidder);
-  adunitCounter.incrementBidderWinsCounter(bid.adUnitCode, bid.bidder);
   tryCallBidderMethod(bidder, 'onBidWon', bid);
 };
 

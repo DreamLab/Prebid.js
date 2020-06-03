@@ -14,6 +14,7 @@ Please use ```platformio``` as the bidder code.
 ```
   var adUnits = [{
           code: 'dfp-native-div',
+          mediaType: 'native',
           mediaTypes: {
               native: {
                   title: {
@@ -49,7 +50,7 @@ Please use ```platformio``` as the bidder code.
           mediaTypes: {
               banner: {
                   sizes: [
-                      [300, 250],[300,600]
+                      [300, 250]
                   ],
               }
           },
@@ -58,15 +59,16 @@ Please use ```platformio``` as the bidder code.
               params: {
                   pubId: '29521',
                   siteId: '26049',
+                  size: '300X250',
                   placementId: '123',
               }
           }]
       },
       {
           code: 'dfp-video-div',
+          sizes: [640, 480],
           mediaTypes: {
               video: {
-                  playerSize: [[640, 480]],
                   context: "instream"
               }
           },
@@ -75,6 +77,7 @@ Please use ```platformio``` as the bidder code.
               params: {
                   pubId: '29521',
                   siteId: '26049',
+                  size: '640X480',
                   placementId: '123',
                   video: {
                       skipppable: true,

@@ -24,11 +24,9 @@ https://track.technoratimedia.com/openrtb/tags?ID=%%PATTERN:hb_cache_id_synacorm
 ```
   var adUnits = [{
       code: 'test-div',
-      mediaTypes: {
-          banner: {
-              sizes: [[300, 250]]
-          }
-      },
+      sizes: [
+          [300, 250]
+      ],
       bids: [{
           bidder: "synacormedia",
           params: {

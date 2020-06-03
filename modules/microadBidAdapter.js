@@ -1,10 +1,10 @@
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import { BANNER } from '../src/mediaTypes.js';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import { BANNER } from '../src/mediaTypes';
 
 const BIDDER_CODE = 'microad';
 
 const ENDPOINT_URLS = {
-  'production': 'https://s-rtb-pb.send.microad.jp/prebid',
+  'production': '//s-rtb-pb.send.microad.jp/prebid',
   'test': 'https://rtbtest.send.microad.jp/prebid'
 };
 export let ENVIRONMENT = 'production';

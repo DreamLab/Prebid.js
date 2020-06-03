@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { fireNativeTrackers, getNativeTargeting, nativeBidIsValid, getAssetMessage } from 'src/native.js';
+import { fireNativeTrackers, getNativeTargeting, nativeBidIsValid, getAssetMessage } from 'src/native';
 import CONSTANTS from 'src/constants.json';
 const utils = require('src/utils');
 

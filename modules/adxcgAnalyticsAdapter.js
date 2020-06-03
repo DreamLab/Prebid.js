@@ -1,14 +1,9 @@
-import { ajax } from '../src/ajax.js';
-import adapter from '../src/AnalyticsAdapter.js';
-import adapterManager from '../src/adapterManager.js';
+import { ajax } from '../src/ajax';
+import adapter from '../src/AnalyticsAdapter';
+import adapterManager from '../src/adapterManager';
 import CONSTANTS from '../src/constants.json';
-import * as utils from '../src/utils.js';
-
-/**
- * Analytics adapter from adxcg.com
- * maintainer info@adxcg.com
- * updated 201911 for prebid 3.0
- */
+import * as url from '../src/url';
+import * as utils from '../src/utils';
 
 const emptyUrl = '';
 const analyticsType = 'endpoint';
@@ -112,8 +107,11 @@ function mapBidWon (bidResponse) {
 }
 
 function send (data) {
-  let adxcgAnalyticsRequestUrl = utils.buildUrl({
-    protocol: 'https',
+  let location = utils.getTopWindowLocation();
+  let secure = location.protocol === 'https:';
+
+  let adxcgAnalyticsRequestUrl = url.format({
+    protocol: secure ? 'https' : 'http',
     hostname: adxcgAnalyticsAdapter.context.host,
     pathname: '/pbrx/v2',
     search: {
@@ -147,13 +145,14 @@ adxcgAnalyticsAdapter.enableAnalytics = function (config) {
     return;
   }
 
+  let secure = location.protocol === 'https:';
   adxcgAnalyticsAdapter.context = {
     events: {
       bidRequests: [],
       bidResponses: []
     },
     initOptions: config.options,
-    host: config.options.host || ('hbarxs.adxcg.net')
+    host: config.options.host || (secure ? 'hbarxs.adxcg.net' : 'hbarx.adxcg.net')
   };
 
   adxcgAnalyticsAdapter.originEnableAnalytics(config);

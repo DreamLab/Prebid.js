@@ -1,6 +1,6 @@
 import { expect } from 'chai'
-import { spec } from 'modules/yieldlabBidAdapter.js'
-import { newBidder } from 'src/adapters/bidderFactory.js'
+import { spec } from 'modules/yieldlabBidAdapter'
+import { newBidder } from 'src/adapters/bidderFactory'
 
 const REQUEST = {
   'bidder': 'yieldlab',
@@ -18,14 +18,7 @@ const REQUEST = {
   'auctionId': '2e41f65424c87c',
   'adUnitCode': 'adunit-code',
   'bidId': '2d925f27f5079f',
-  'sizes': [728, 90],
-  'userIdAsEids': [{
-    'source': 'netid.de',
-    'uids': [{
-      'id': 'fH5A3n2O8_CZZyPoJVD-eabc6ECb7jhxCicsds7qSg',
-      'atype': 1
-    }]
-  }]
+  'sizes': [728, 90]
 }
 
 const RESPONSE = {
@@ -34,13 +27,8 @@ const RESPONSE = {
   format: 0,
   id: 1111,
   price: 1,
-  pid: 2222,
-  adtype: 'BANNER'
+  pid: 2222
 }
-
-const VIDEO_RESPONSE = Object.assign({}, RESPONSE, {
-  'adtype': 'VIDEO'
-})
 
 describe('yieldlabBidAdapter', function () {
   const adapter = newBidder(spec)
@@ -82,10 +70,6 @@ describe('yieldlabBidAdapter', function () {
 
     it('passes targeting to bid request', function () {
       expect(request.url).to.include('t=key1%3Dvalue1%26key2%3Dvalue2')
-    })
-
-    it('passes userids to bid request', function () {
-      expect(request.url).to.include('ids=netid.de%3AfH5A3n2O8_CZZyPoJVD-eabc6ECb7jhxCicsds7qSg')
     })
 
     const gdprRequest = spec.buildRequests(bidRequests, {
@@ -156,7 +140,7 @@ describe('yieldlabBidAdapter', function () {
           }
         }
       })
-      const result = spec.interpretResponse({body: [VIDEO_RESPONSE]}, {validBidRequests: [VIDEO_REQUEST]})
+      const result = spec.interpretResponse({body: [RESPONSE]}, {validBidRequests: [VIDEO_REQUEST]})
 
       expect(result[0].requestId).to.equal('2d925f27f5079f')
       expect(result[0].cpm).to.equal(0.01)
@@ -174,7 +158,7 @@ describe('yieldlabBidAdapter', function () {
           }
         }
       })
-      const result = spec.interpretResponse({body: [VIDEO_RESPONSE]}, {validBidRequests: [OUTSTREAM_REQUEST]})
+      const result = spec.interpretResponse({body: [RESPONSE]}, {validBidRequests: [OUTSTREAM_REQUEST]})
 
       expect(result[0].renderer.id).to.equal('2d925f27f5079f')
       expect(result[0].renderer.url).to.equal('https://ad2.movad.net/dynamic.ad?a=o193092&ma_loadEvent=ma-start-event')

@@ -1,6 +1,8 @@
-import * as utils from '../src/utils.js';
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import find from 'core-js-pure/features/array/find.js';
+import * as utils from '../src/utils';
+import { format } from '../src/url';
+// import { config } from '../src/config';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import find from 'core-js/library/fn/array/find';
 
 const VERSION = '1.0';
 const BIDDER_CODE = 'adyoulike';
@@ -16,7 +18,7 @@ export const spec = {
    * @return boolean True if this is a valid bid, and false otherwise.
    */
   isBidRequestValid: function (bid) {
-    const sizes = getSize(getSizeArray(bid));
+    const sizes = getSize(bid.sizes);
     if (!bid.params || !bid.params.placement || !sizes.width || !sizes.height) {
       return false;
     }
@@ -32,14 +34,12 @@ export const spec = {
     const payload = {
       Version: VERSION,
       Bids: bidRequests.reduce((accumulator, bid) => {
-        let sizesArray = getSizeArray(bid);
-        let size = getSize(sizesArray);
+        let size = getSize(bid.sizes);
         accumulator[bid.bidId] = {};
         accumulator[bid.bidId].PlacementID = bid.params.placement;
         accumulator[bid.bidId].TransactionID = bid.transactionId;
         accumulator[bid.bidId].Width = size.width;
         accumulator[bid.bidId].Height = size.height;
-        accumulator[bid.bidId].AvailableSizes = sizesArray.join(',');
         return accumulator;
       }, {}),
       PageRefreshed: getPageRefreshed()
@@ -50,10 +50,6 @@ export const spec = {
         consentString: bidderRequest.gdprConsent.consentString,
         consentRequired: (typeof bidderRequest.gdprConsent.gdprApplies === 'boolean') ? bidderRequest.gdprConsent.gdprApplies : true
       };
-    }
-
-    if (bidderRequest && bidderRequest.uspConsent) {
-      payload.uspConsent = bidderRequest.uspConsent;
     }
 
     const data = JSON.stringify(payload);
@@ -74,19 +70,11 @@ export const spec = {
    * @param {*} serverResponse A successful response from the server.
    * @return {Bid[]} An array of bids which were nested inside the server.
    */
-  interpretResponse: function (serverResponse, request) {
+  interpretResponse: function (serverResponse, bidRequest) {
     const bidResponses = [];
-    var bidRequests = {};
-
-    try {
-      bidRequests = JSON.parse(request.data).Bids;
-    } catch (e) {
-      // json error initial request can't be read
-    }
-
     // For this adapter, serverResponse is a list
     serverResponse.body.forEach(response => {
-      const bid = createBid(response, bidRequests);
+      const bid = createBid(response);
       if (bid) {
         bidResponses.push(bid);
       }
@@ -108,7 +96,7 @@ function getHostname(bidderRequest) {
 function getReferrerUrl(bidderRequest) {
   let referer = '';
   if (bidderRequest && bidderRequest.refererInfo) {
-    referer = bidderRequest.refererInfo.referer;
+    referer = encodeURIComponent(bidderRequest.refererInfo.referer);
   }
   return referer;
 }
@@ -143,7 +131,7 @@ function getPageRefreshed() {
 /* Create endpoint url */
 function createEndpoint(bidRequests, bidderRequest) {
   let host = getHostname(bidRequests);
-  return utils.buildUrl({
+  return format({
     protocol: 'https',
     host: `${DEFAULT_DC}${host}.omnitagjs.com`,
     pathname: '/hb-api/prebid/v1',
@@ -168,20 +156,10 @@ function createEndpointQS(bidderRequest) {
   return qs;
 }
 
-function getSizeArray(bid) {
-  let inputSize = bid.sizes;
-  if (bid.mediaTypes && bid.mediaTypes.banner) {
-    inputSize = bid.mediaTypes.banner.sizes;
-  }
-
-  return utils.parseSizesInput(inputSize);
-}
-
 /* Get parsed size from request size */
-function getSize(sizesArray) {
+function getSize(requestSizes) {
   const parsed = {};
-  // the main requested size is the first one
-  const size = sizesArray[0];
+  const size = utils.parseSizesInput(requestSizes)[0];
 
   if (typeof size !== 'string') {
     return parsed;
@@ -202,20 +180,9 @@ function getSize(sizesArray) {
 }
 
 /* Create bid from response */
-function createBid(response, bidRequests) {
+function createBid(response) {
   if (!response || !response.Ad) {
     return
-  }
-
-  // In case we don't retreive the size from the adserver, use the given one.
-  if (bidRequests && bidRequests[response.BidID]) {
-    if (!response.Width || response.Width === '0') {
-      response.Width = bidRequests[response.BidID].Width;
-    }
-
-    if (!response.Height || response.Height === '0') {
-      response.Height = bidRequests[response.BidID].Height;
-    }
   }
 
   return {

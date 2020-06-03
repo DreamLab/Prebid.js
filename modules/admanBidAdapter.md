@@ -1,69 +1,35 @@
 # Overview
 
-```
-Module Name: adman Bidder Adapter
-Module Type: Bidder Adapter
-```
+**Module Name**: Adman Bidder Adapter  
+**Module Type**: Bidder Adapter  
+**Maintainer**: prebid@admanmedia.com 
 
 # Description
 
-Module that connects to AdmanMedia' demand sources
+Use `adman` as bidder.
 
-# Test Parameters
+`id` is required and must be 8 alphanumeric characters.
+
+## AdUnits configuration example
 ```
-    var adUnits = [
-                // Will return static native ad. Assets are stored through user UI for each placement separetly
-                {
-                    code: 'placementId_0',
-                    mediaTypes: {
-                        native: {}
-                    },
-                    bids: [
-                        {
-                            bidder: 'adman',
-                            params: {
-                                placementId: 0,
-                                traffic: 'native'
-                            }
-                        }
-                    ]
-                },
-                // Will return static test banner
-                {
-                    code: 'placementId_0',
-                    mediaTypes: {
-                        banner: {
-                            sizes: [[300, 250]],
-                        }
-                    },
-                    bids: [
-                        {
-                            bidder: 'adman',
-                            params: {
-                                placementId: 0,
-                                traffic: 'banner'
-                            }
-                        }
-                    ]
-                },
-                // Will return test vast xml. All video params are stored under placement in publishers UI
-                {
-                    code: 'placementId_0',
-                    mediaTypes: {
-                        video: {
-                            playerSize: [640, 480],
-                            context: 'instream'
-                        }
-                    },
-                    bids: [
-                        {
-                            bidder: 'adman',
-                            params: {
-                                placementId: 0,
-                                traffic: 'video'
-                            }
-                        }
-                    ]
-                }
-            ];
+    var adUnits = [{
+      code: 'test-div',
+      sizes: [[300, 250]],
+      bids: [{
+          bidder: 'adman',
+          params: { 
+              id: 1234asdf
+          }
+      }]
+    },{
+      code: 'test-div,
+      sizes: [[600, 338]],
+      bids: [{
+          bidder: 'adman',
+          params: { 
+              id: asdf1234
+          }
+      }]
+    }];
 ```
+

@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 
-import * as utils from 'src/utils.js';
-import { config } from 'src/config.js';
+import * as utils from 'src/utils';
+import { config } from 'src/config';
 
-import { spec } from 'modules/33acrossBidAdapter.js';
+import { spec } from 'modules/33acrossBidAdapter';
 
 describe('33acrossBidAdapter:', function () {
   const BIDDER_CODE = '33across';
@@ -61,7 +61,6 @@ describe('33acrossBidAdapter:', function () {
       },
       ext: {
         ttx: {
-          prebidStartedAt: 1,
           caller: [{
             'name': 'prebidjs',
             'version': '$prebid.version$'
@@ -75,7 +74,7 @@ describe('33acrossBidAdapter:', function () {
       return this;
     };
 
-    this.withViewability = viewability => {
+    this.withViewabiliuty = viewability => {
       Object.assign(ttxRequest.imp[0].banner, {
         ext: {
           ttx: { viewability }
@@ -100,14 +99,6 @@ describe('33acrossBidAdapter:', function () {
 
     this.withSite = site => {
       Object.assign(ttxRequest, { site });
-      return this;
-    };
-
-    this.withPageUrl = pageUrl => {
-      Object.assign(ttxRequest.site, {
-        page: pageUrl
-      });
-
       return this;
     };
 
@@ -192,7 +183,6 @@ describe('33acrossBidAdapter:', function () {
     ];
 
     sandbox = sinon.sandbox.create();
-    sandbox.stub(Date, 'now').returns(1);
     sandbox.stub(document, 'getElementById').withArgs('div-id').returns(element);
     sandbox.stub(utils, 'getWindowTop').returns(win);
     sandbox.stub(utils, 'getWindowSelf').returns(win);
@@ -275,7 +265,7 @@ describe('33acrossBidAdapter:', function () {
     context('when element is fully in view', function() {
       it('returns 100', function() {
         const ttxRequest = new TtxRequestBuilder()
-          .withViewability({amount: 100})
+          .withViewabiliuty({amount: 100})
           .build();
         const serverRequest = new ServerRequestBuilder()
           .withData(ttxRequest)
@@ -290,7 +280,7 @@ describe('33acrossBidAdapter:', function () {
     context('when element is out of view', function() {
       it('returns 0', function() {
         const ttxRequest = new TtxRequestBuilder()
-          .withViewability({amount: 0})
+          .withViewabiliuty({amount: 0})
           .build();
         const serverRequest = new ServerRequestBuilder()
           .withData(ttxRequest)
@@ -305,7 +295,7 @@ describe('33acrossBidAdapter:', function () {
     context('when element is partially in view', function() {
       it('returns percentage', function() {
         const ttxRequest = new TtxRequestBuilder()
-          .withViewability({amount: 75})
+          .withViewabiliuty({amount: 75})
           .build();
         const serverRequest = new ServerRequestBuilder()
           .withData(ttxRequest)
@@ -321,7 +311,7 @@ describe('33acrossBidAdapter:', function () {
       it('try to use alternative values', function() {
         const ttxRequest = new TtxRequestBuilder()
           .withSizes([{ w: 800, h: 2400, ext: {} }])
-          .withViewability({amount: 25})
+          .withViewabiliuty({amount: 25})
           .build();
         const serverRequest = new ServerRequestBuilder()
           .withData(ttxRequest)
@@ -337,7 +327,7 @@ describe('33acrossBidAdapter:', function () {
     context('when nested iframes', function() {
       it('returns \'nm\'', function() {
         const ttxRequest = new TtxRequestBuilder()
-          .withViewability({amount: spec.NON_MEASURABLE})
+          .withViewabiliuty({amount: spec.NON_MEASURABLE})
           .build();
         const serverRequest = new ServerRequestBuilder()
           .withData(ttxRequest)
@@ -357,7 +347,7 @@ describe('33acrossBidAdapter:', function () {
     context('when tab is inactive', function() {
       it('returns 0', function() {
         const ttxRequest = new TtxRequestBuilder()
-          .withViewability({amount: 0})
+          .withViewabiliuty({amount: 0})
           .build();
         const serverRequest = new ServerRequestBuilder()
           .withData(ttxRequest)
@@ -453,45 +443,6 @@ describe('33acrossBidAdapter:', function () {
         expect(builtServerRequests).to.deep.equal([serverRequest]);
       });
     });
-
-    context('when referer value is available', function() {
-      it('returns corresponding server requests with site.page set', function() {
-        const bidderRequest = {
-          refererInfo: {
-            referer: 'http://foo.com/bar'
-          }
-        };
-
-        const ttxRequest = new TtxRequestBuilder()
-          .withPageUrl('http://foo.com/bar')
-          .build();
-        const serverRequest = new ServerRequestBuilder()
-          .withData(ttxRequest)
-          .build();
-
-        const builtServerRequests = spec.buildRequests(bidRequests, bidderRequest);
-
-        expect(builtServerRequests).to.deep.equal([serverRequest]);
-      });
-    });
-
-    context('when referer value is not available', function() {
-      it('returns corresponding server requests without site.page set', function() {
-        const bidderRequest = {
-          refererInfo: {}
-        };
-
-        const ttxRequest = new TtxRequestBuilder()
-          .build();
-        const serverRequest = new ServerRequestBuilder()
-          .withData(ttxRequest)
-          .build();
-
-        const builtServerRequests = spec.buildRequests(bidRequests, bidderRequest);
-
-        expect(builtServerRequests).to.deep.equal([serverRequest]);
-      });
-    });
   });
 
   describe('interpretResponse', function() {
@@ -501,11 +452,11 @@ describe('33acrossBidAdapter:', function () {
       ttxRequest = new TtxRequestBuilder()
         .withSite({
           id: SITE_ID,
-          page: 'https://test-url.com'
+          page: 'http://test-url.com'
         })
         .build();
       serverRequest = new ServerRequestBuilder()
-        .withUrl('https://staging-ssc.33across.com/api/v1/hb')
+        .withUrl('//staging-ssc.33across.com/api/v1/hb')
         .withData(ttxRequest)
         .withOptions({
           contentType: 'text/plain',
@@ -626,11 +577,11 @@ describe('33acrossBidAdapter:', function () {
       syncs = [
         {
           type: 'iframe',
-          url: 'https://ssc-cms.33across.com/ps/?m=xch&rt=html&ru=deb&id=id1'
+          url: 'https://de.tynt.com/deb/v2?m=xch&rt=html&id=id1'
         },
         {
           type: 'iframe',
-          url: 'https://ssc-cms.33across.com/ps/?m=xch&rt=html&ru=deb&id=id2'
+          url: 'https://de.tynt.com/deb/v2?m=xch&rt=html&id=id2'
         },
       ];
       bidRequests = [

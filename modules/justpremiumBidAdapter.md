@@ -12,11 +12,7 @@ To get more information or your unique zone id please contact Justpremium.
 ```
    var adUnits = [
        {
-           mediaTypes: {
-                banner: {
-                    sizes: [[1, 1]]
-                }
-           },
+           sizes: [[1, 1]],
            code: 'div-gpt-ad-1471513102552-0',
            bids: [
                {
@@ -29,11 +25,7 @@ To get more information or your unique zone id please contact Justpremium.
            ]
        },
        {
-           mediaTypes: {
-                banner: {
-                    sizes: [[300, 600]]
-                }
-           },
+           sizes: [[300, 600]],
            code: 'div-gpt-ad-1471513102552-1',
            bids: [
                {

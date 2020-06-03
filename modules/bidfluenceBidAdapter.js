@@ -1,8 +1,5 @@
-import * as utils from '../src/utils.js';
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import { getStorageManager } from '../src/storageManager.js';
-
-const storage = getStorageManager();
+import * as utils from '../src/utils';
+import { registerBidder } from '../src/adapters/bidderFactory';
 const BIDDER_CODE = 'bidfluence';
 
 function stdTimezoneOffset(t) {
@@ -49,7 +46,7 @@ export const spec = {
     var payload = {
       v: '2.0',
       azr: true,
-      ck: storage.cookiesAreEnabled(),
+      ck: utils.cookiesAreEnabled(),
       re: refInfo ? refInfo.referer : '',
       st: refInfo ? refInfo.stack : [],
       tz: getBdfTz(new Date()),
@@ -84,7 +81,7 @@ export const spec = {
     const payloadString = JSON.stringify(payload);
     return {
       method: 'POST',
-      url: `https://bdf${payload.bids[0].pid}.bidfluence.com/Prebid`,
+      url: `//bdf${payload.bids[0].pid}.bidfluence.com/Prebid`,
       data: payloadString,
       options: { contentType: 'text/plain' }
     };

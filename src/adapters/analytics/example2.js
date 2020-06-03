@@ -1,11 +1,10 @@
-/* eslint-disable no-console */
-import { ajax } from '../../../src/ajax.js';
+import { ajax } from '../../../src/ajax';
 
 /**
  * example2.js - analytics adapter for Example2 Analytics Endpoint example
  */
 
-import adapter from '../../AnalyticsAdapter.js';
+import adapter from '../../AnalyticsAdapter';
 
 const url = 'https://httpbin.org/post';
 const analyticsType = 'endpoint';

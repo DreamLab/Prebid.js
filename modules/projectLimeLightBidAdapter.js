@@ -1,10 +1,10 @@
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import { BANNER, VIDEO } from '../src/mediaTypes.js';
-import {ajax} from '../src/ajax.js';
-import * as utils from '../src/utils.js';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import { BANNER, VIDEO } from '../src/mediaTypes';
+import {ajax} from '../src/ajax';
+import * as utils from '../src/utils';
 
 const BIDDER_CODE = 'project-limelight';
-const URL = 'https://ads.project-limelight.com/hb';
+const URL = '//ads.project-limelight.com/hb';
 
 /**
  * Determines whether or not the given bid response is valid.

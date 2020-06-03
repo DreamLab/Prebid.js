@@ -6,6 +6,7 @@ let windowLocation = window.location;
 var urlParser = document.createElement('a');
 urlParser.href = '%%PATTERN:url%%';
 var publisherDomain = urlParser.protocol + '//' + urlParser.hostname;
+var adServerDomain = windowLocation.protocol + '//tpc.googlesyndication.com';
 
 function renderAd(ev) {
     var key = ev.message ? 'message' : 'data';
@@ -57,7 +58,8 @@ function renderAd(ev) {
 function requestAdFromPrebid() {
   var message = JSON.stringify({
     message: 'Prebid Request',
-    adId: '%%PATTERN:hb_adid%%'
+    adId: '%%PATTERN:hb_adid%%',
+    adServerDomain: adServerDomain
   });
   window.parent.postMessage(message, publisherDomain);
 }

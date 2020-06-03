@@ -14,8 +14,8 @@
  * @author Emoteev Engineering <engineering@emoteev.io>.
  */
 
-import {registerBidder} from '../src/adapters/bidderFactory.js';
-import {BANNER} from '../src/mediaTypes.js';
+import {registerBidder} from '../src/adapters/bidderFactory';
+import {BANNER} from '../src/mediaTypes';
 import {
   triggerPixel,
   getUniqueIdentifierStr,
@@ -24,12 +24,10 @@ import {
   isArray,
   isInteger,
   getParameterByName,
-  buildUrl
-} from '../src/utils.js';
-import {config} from '../src/config.js';
-import { getStorageManager } from '../src/storageManager.js';
-
-export const storage = getStorageManager();
+  getCookie
+} from '../src/utils';
+import {config} from '../src/config';
+import * as url from '../src/url';
 
 export const BIDDER_CODE = 'emoteev';
 
@@ -38,8 +36,8 @@ export const BIDDER_CODE = 'emoteev';
  */
 export const ADAPTER_VERSION = '1.35.0';
 
-export const DOMAIN = 'prebid.emoteev.xyz';
-export const DOMAIN_STAGING = 'prebid-staging.emoteev.xyz';
+export const DOMAIN = 'prebid.emoteev.io';
+export const DOMAIN_STAGING = 'prebid-staging.emoteev.io';
 export const DOMAIN_DEVELOPMENT = 'localhost:3000';
 
 /**
@@ -234,7 +232,7 @@ export const domain = (env) => {
  * @param {string} env Emoteev environment parameter
  * @returns {string} The full URL which events is sent to.
  */
-export const eventsUrl = env => buildUrl({
+export const eventsUrl = env => url.format({
   protocol: (env === DEVELOPMENT) ? 'http' : 'https',
   hostname: domain(env),
   pathname: EVENTS_PATH
@@ -246,7 +244,7 @@ export const eventsUrl = env => buildUrl({
  * @param {string} env Emoteev environment parameter
  * @returns {string} The full URL which bidderRequest is sent to.
  */
-export const bidderUrl = env => buildUrl({
+export const bidderUrl = env => url.format({
   protocol: (env === DEVELOPMENT) ? 'http' : 'https',
   hostname: domain(env),
   pathname: BIDDER_PATH
@@ -258,7 +256,7 @@ export const bidderUrl = env => buildUrl({
  * @param {string} env Emoteev environment parameter
  * @returns {string} The full URL called for iframe-based user sync
  */
-export const userSyncIframeUrl = env => buildUrl({
+export const userSyncIframeUrl = env => url.format({
   protocol: (env === DEVELOPMENT) ? 'http' : 'https',
   hostname: domain(env),
   pathname: USER_SYNC_IFRAME_PATH
@@ -270,7 +268,7 @@ export const userSyncIframeUrl = env => buildUrl({
  * @param {string} env Emoteev environment parameter
  * @returns {string} The full URL called for image-based user sync
  */
-export const userSyncImageUrl = env => buildUrl({
+export const userSyncImageUrl = env => url.format({
   protocol: (env === DEVELOPMENT) ? 'http' : 'https',
   hostname: domain(env),
   pathname: USER_SYNC_IMAGE_PATH
@@ -508,12 +506,12 @@ export const spec = {
       bidderRequest),
   interpretResponse: interpretResponse,
   onBidWon: (bidObject) =>
-    triggerPixel(buildUrl(onBidWon(
+    triggerPixel(url.format(onBidWon(
       resolveEnv(config.getConfig(), getParameterByName('emoteevEnv')),
-      storage.getCookie('_pubcid'),
+      getCookie('_pubcid'),
       bidObject))),
   onTimeout: (bidRequest) =>
-    triggerPixel(buildUrl(onTimeout(
+    triggerPixel(url.format(onTimeout(
       resolveEnv(config.getConfig(), getParameterByName('emoteevEnv')),
       bidRequest))),
   getUserSyncs: (syncOptions) =>

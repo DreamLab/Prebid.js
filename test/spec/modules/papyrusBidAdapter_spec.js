@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { spec } from 'modules/papyrusBidAdapter.js';
+import { spec } from 'modules/papyrusBidAdapter';
 
-const ENDPOINT = 'https://prebid.papyrus.global';
+const ENDPOINT = '//prebid.papyrus.global';
 const BIDDER_CODE = 'papyrus';
 
 describe('papyrus Adapter', function () {

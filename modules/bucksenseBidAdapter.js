@@ -1,10 +1,10 @@
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import { BANNER } from '../src/mediaTypes.js';
-import * as utils from '../src/utils.js';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import { BANNER } from '../src/mediaTypes';
+import * as utils from '../src/utils';
 
 const WHO = 'BKSHBID-005';
 const BIDDER_CODE = 'bucksense';
-const URL = 'https://prebid.bksn.se/prebidjs/';
+const URL = 'https://prebid.bksn.se:445/prebidjs/';
 
 export const spec = {
   code: BIDDER_CODE,

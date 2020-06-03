@@ -1,5 +1,5 @@
-import { getGlobal } from './prebidGlobal.js';
-import { logWarn } from './utils.js';
+import { getGlobal } from './prebidGlobal';
+import { logWarn } from './utils';
 
 const prebid = getGlobal();
 

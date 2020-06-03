@@ -1,5 +1,5 @@
-import * as utils from 'src/utils.js';
-import analyticsAdapter from 'modules/rivrAnalyticsAdapter.js';
+import * as utils from 'src/utils';
+import analyticsAdapter from 'modules/rivrAnalyticsAdapter';
 import {
   sendImpressions,
   handleClickEventWithClosureScope,
@@ -15,10 +15,10 @@ import {
   storeAndReturnRivrUsrIdCookie,
   arrayDifference,
   activelyWaitForBannersToRender,
-} from 'modules/rivrAnalyticsAdapter.js';
+} from 'modules/rivrAnalyticsAdapter';
 import {expect} from 'chai';
-import adapterManager from 'src/adapterManager.js';
-import * as ajax from 'src/ajax.js';
+import adapterManager from 'src/adapterManager';
+import * as ajax from 'src/ajax';
 import CONSTANTS from 'src/constants.json';
 
 const events = require('../../../src/events');

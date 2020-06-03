@@ -1,9 +1,9 @@
-import adapter from '../src/AnalyticsAdapter.js';
+import adapter from '../src/AnalyticsAdapter';
 import CONSTANTS from '../src/constants.json';
-import adapterManager from '../src/adapterManager.js';
-import {ajaxBuilder} from '../src/ajax.js';
+import adapterManager from '../src/adapterManager';
+import {ajaxBuilder} from '../src/ajax';
 
-const utils = require('../src/utils.js');
+const utils = require('../src/utils');
 let ajax = ajaxBuilder(0);
 
 const DEFAULT_EVENT_URL = 'apex.go.sonobi.com/keymaker';

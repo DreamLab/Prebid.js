@@ -13,11 +13,7 @@ Module that connects to Conversant's demand sources.  Supports banners and video
 var adUnits = [
     {
         code: 'banner-test-div',
-        mediaTypes: {
-            banner: {        
-                sizes: [[300, 250],[300,600]]
-            }
-        },
+        sizes: [[300, 250]],
         bids: [{
             bidder: "conversant",
             params: {
@@ -38,7 +34,6 @@ var adUnits = [
                 site_id: '108060',
                 api: [2],
                 protocols: [1, 2],
-                white_label_url: 'https://web.hb.ad.cpe.dotomi.com/s2s/header/24',
                 mimes: ['video/mp4']
             }
         }]

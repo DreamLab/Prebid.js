@@ -1,4 +1,4 @@
-import { isValidVideoBid } from 'src/video.js';
+import { isValidVideoBid } from 'src/video';
 
 describe('video.js', function () {
   it('validates valid instream bids', function () {

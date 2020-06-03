@@ -1,8 +1,8 @@
 'use strict';
 
-import * as utils from '../src/utils.js';
-import {registerBidder} from '../src/adapters/bidderFactory.js';
-import { BANNER, VIDEO } from '../src/mediaTypes.js';
+import * as utils from '../src/utils';
+import {registerBidder} from '../src/adapters/bidderFactory';
+import { BANNER, VIDEO } from '../src/mediaTypes';
 
 function RhythmOneBidAdapter() {
   this.code = 'rhythmone';
@@ -15,7 +15,8 @@ function RhythmOneBidAdapter() {
   let SUPPORTED_VIDEO_API = [1, 2, 5];
   let slotsToBids = {};
   let that = this;
-  let version = '2.1';
+  let version = '2.0.1.0';
+  var win = typeof window !== 'undefined' ? window : {};
 
   this.isBidRequestValid = function (bid) {
     return !!(bid.params && bid.params.placementId);
@@ -25,21 +26,14 @@ function RhythmOneBidAdapter() {
     return [];
   };
 
-  function frameImp(BRs, bidderRequest) {
+  function frameImp(BRs) {
     var impList = [];
-    var isSecure = 0;
-    if (bidderRequest && bidderRequest.refererInfo && bidderRequest.refererInfo.stack.length) {
-      // clever trick to get the protocol
-      var el = document.createElement('a');
-      el.href = bidderRequest.refererInfo.stack[0];
-      isSecure = (el.protocol == 'https:') ? 1 : 0;
-    }
     for (var i = 0; i < BRs.length; i++) {
-      slotsToBids[BRs[i].adUnitCode] = BRs[i];
+      slotsToBids[BRs[i].adUnitCode || BRs[i].placementCode] = BRs[i];
       var impObj = {};
       impObj.id = BRs[i].adUnitCode;
       impObj.bidfloor = parseFloat(utils.deepAccess(BRs[i], 'params.floor')) || 0;
-      impObj.secure = isSecure;
+      impObj.secure = win.location.protocol === 'https:' ? 1 : 0;
 
       if (utils.deepAccess(BRs[i], 'mediaTypes.banner') || utils.deepAccess(BRs[i], 'mediaType') === 'banner') {
         let banner = frameBanner(BRs[i]);
@@ -60,25 +54,31 @@ function RhythmOneBidAdapter() {
   }
 
   function frameSite(bidderRequest) {
-    var site = {
-      domain: '',
-      page: '',
-      ref: ''
+    return {
+      domain: attempt(function() {
+        var d = win.document.location.ancestorOrigins;
+        if (d && d.length > 0) {
+          return d[d.length - 1];
+        }
+        return win.top.document.location.hostname; // try/catch is in the attempt function
+      }, ''),
+      page: attempt(function() {
+        var l;
+        // try/catch is in the attempt function
+        try {
+          l = win.top.document.location.href.toString();
+        } catch (ex) {
+          l = win.document.location.href.toString();
+        }
+        return l;
+      }, ''),
+      ref: attempt(function() {
+        if (bidderRequest && bidderRequest.refererInfo) {
+          return bidderRequest.refererInfo.referer;
+        }
+        return '';
+      }, '')
     }
-    if (bidderRequest && bidderRequest.refererInfo) {
-      var ri = bidderRequest.refererInfo;
-      site.ref = ri.referer;
-
-      if (ri.stack.length) {
-        site.page = ri.stack[ri.stack.length - 1];
-
-        // clever trick to get the domain
-        var el = document.createElement('a');
-        el.href = ri.stack[0];
-        site.domain = el.hostname;
-      }
-    }
-    return site;
   }
 
   function frameDevice() {
@@ -163,9 +163,9 @@ function RhythmOneBidAdapter() {
   }
 
   function frameBid(BRs, bidderRequest) {
-    let bid = {
+    return {
       id: BRs[0].bidderRequestId,
-      imp: frameImp(BRs, bidderRequest),
+      imp: frameImp(BRs),
       site: frameSite(bidderRequest),
       device: frameDevice(),
       user: {
@@ -181,14 +181,6 @@ function RhythmOneBidAdapter() {
         }
       }
     };
-    if (BRs[0].schain) {
-      bid.source = {
-        'ext': {
-          'schain': BRs[0].schain
-        }
-      }
-    }
-    return bid;
   }
 
   function getFirstParam(key, validBidRequests) {
@@ -199,13 +191,20 @@ function RhythmOneBidAdapter() {
     }
   }
 
+  function attempt(valueFunction, defaultValue) {
+    try {
+      return valueFunction();
+    } catch (ex) { }
+    return defaultValue;
+  }
+
   this.buildRequests = function (BRs, bidderRequest) {
     let fallbackPlacementId = getFirstParam('placementId', BRs);
     if (fallbackPlacementId === undefined || BRs.length < 1) {
       return [];
     }
 
-    var rmpUrl = getFirstParam('endpoint', BRs) || 'https://tag.1rx.io/rmp/{placementId}/0/{path}?z={zone}';
+    var rmpUrl = getFirstParam('endpoint', BRs) || '//tag.1rx.io/rmp/{placementId}/0/{path}?z={zone}';
     var defaultZone = getFirstParam('zone', BRs) || '1r';
     var defaultPath = getFirstParam('path', BRs) || 'mvo';
 

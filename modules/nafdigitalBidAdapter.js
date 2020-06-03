@@ -1,7 +1,8 @@
-import * as utils from '../src/utils.js';
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import { BANNER } from '../src/mediaTypes.js';
-import { config } from '../src/config.js';
+import * as utils from '../src/utils';
+import * as url from '../src/url';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import { BANNER } from '../src/mediaTypes';
+import { config } from '../src/config';
 
 const BIDDER_CODE = 'nafdigital';
 const URL = 'https://nafdigitalbidder.com/hb';
@@ -55,7 +56,7 @@ function buildRequests(bidReqs, bidderRequest) {
       id: utils.getUniqueIdentifierStr(),
       imp: nafdigitalImps,
       site: {
-        domain: utils.parseUrl(referrer).host,
+        domain: url.parse(referrer).host,
         page: referrer,
         publisher: {
           id: publisherId

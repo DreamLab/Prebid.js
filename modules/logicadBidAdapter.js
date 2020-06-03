@@ -1,5 +1,5 @@
-import {registerBidder} from '../src/adapters/bidderFactory.js';
-import {BANNER} from '../src/mediaTypes.js';
+import {registerBidder} from '../src/adapters/bidderFactory';
+import {BANNER} from '../src/mediaTypes';
 
 const BIDDER_CODE = 'logicad';
 const ENDPOINT_URL = 'https://pb.ladsp.com/adrequest/prebid';

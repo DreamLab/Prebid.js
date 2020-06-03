@@ -24,10 +24,6 @@ describe('Publisher API', function () {
     it('should have $$PREBID_GLOBAL$$.que.push function', function () {
       assert.isFunction($$PREBID_GLOBAL$$.que.push);
     });
-
-    it('should have global pointer for PBJS global', function () {
-      assert.isArray(window._pbjsGlobals);
-    });
   });
 
   describe('has function', function () {

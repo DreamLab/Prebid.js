@@ -1,6 +1,6 @@
-import { getAdserverCategoryHook, initTranslation, storage } from 'modules/categoryTranslation.js';
-import { config } from 'src/config.js';
-import * as utils from 'src/utils.js';
+import { getAdserverCategoryHook, initTranslation } from 'modules/categoryTranslation';
+import { config } from 'src/config';
+import * as utils from 'src/utils';
 import { expect } from 'chai';
 
 describe('category translation', function () {
@@ -9,7 +9,7 @@ describe('category translation', function () {
 
   beforeEach(function () {
     fakeTranslationServer = sinon.fakeServer.create();
-    getLocalStorageStub = sinon.stub(storage, 'getDataFromLocalStorage');
+    getLocalStorageStub = sinon.stub(utils, 'getDataFromLocalStorage');
   });
 
   afterEach(function() {
@@ -34,7 +34,7 @@ describe('category translation', function () {
     }));
     let bid = {
       meta: {
-        primaryCatId: 'iab-1'
+        iabSubCatId: 'iab-1'
       }
     }
     getAdserverCategoryHook(sinon.spy(), 'code', bid);
@@ -57,7 +57,7 @@ describe('category translation', function () {
     }));
     let bid = {
       meta: {
-        primaryCatId: 'iab-2'
+        iabSubCatId: 'iab-2'
       }
     }
     getAdserverCategoryHook(sinon.spy(), 'code', bid);
@@ -77,19 +77,6 @@ describe('category translation', function () {
     clock.restore();
   });
 
-  it('should make ajax call to update mapping file if data found in localstorage is expired', function () {
-    let clock = sinon.useFakeTimers(utils.timestamp());
-    getLocalStorageStub.returns(JSON.stringify({
-      lastUpdated: utils.timestamp() - 2 * 24 * 60 * 60 * 1000,
-      mapping: {
-        'iab-1': '1'
-      }
-    }));
-    initTranslation();
-    expect(fakeTranslationServer.requests.length).to.equal(1);
-    clock.restore();
-  });
-
   it('should use default mapping file if publisher has not defined in config', function () {
     getLocalStorageStub.returns(null);
     initTranslation('http://sample.com', 'somekey');
@@ -97,7 +84,7 @@ describe('category translation', function () {
     expect(fakeTranslationServer.requests[0].url).to.equal('http://sample.com');
   });
 
-  it('should use publisher defined mapping file', function () {
+  it('should use publisher defined defined mapping file', function () {
     config.setConfig({
       'brandCategoryTranslation': {
         'translationFile': 'http://sample.com'

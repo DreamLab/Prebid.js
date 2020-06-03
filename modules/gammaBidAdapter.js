@@ -1,7 +1,7 @@
-import { registerBidder } from '../src/adapters/bidderFactory.js';
+import * as utils from '../src/utils';
+import { registerBidder } from '../src/adapters/bidderFactory';
 
-const ENDPOINT = 'https://hb.gammaplatform.com';
-const ENDPOINT_USERSYNC = 'https://cm-supply-web.gammaplatform.com';
+const ENDPOINT = 'hb.gammaplatform.com';
 const BIDDER_CODE = 'gamma';
 
 export const spec = {
@@ -25,14 +25,13 @@ export const spec = {
    * @param {BidRequest[]} bidRequests A non-empty list of bid requests which should be sent to the Server.
    * @return ServerRequest Info describing the request to the server.
    */
-  buildRequests: function(bidRequests, bidderRequest) {
+  buildRequests: function(bidRequests) {
     const serverRequests = [];
-    const bidderRequestReferer = (bidderRequest && bidderRequest.refererInfo && bidderRequest.refererInfo.referer) || '';
     for (var i = 0, len = bidRequests.length; i < len; i++) {
       const gaxObjParams = bidRequests[i];
       serverRequests.push({
         method: 'GET',
-        url: ENDPOINT + '/adx/request?wid=' + gaxObjParams.params.siteId + '&zid=' + gaxObjParams.params.zoneId + '&hb=pbjs&bidid=' + gaxObjParams.bidId + '&urf=' + encodeURIComponent(bidderRequestReferer)
+        url: '//' + ENDPOINT + '/adx/request?wid=' + gaxObjParams.params.siteId + '&zid=' + gaxObjParams.params.zoneId + '&hb=pbjs&bidid=' + gaxObjParams.bidId + '&urf=' + encodeURIComponent(utils.getTopWindowUrl())
       });
     }
     return serverRequests;
@@ -61,7 +60,7 @@ export const spec = {
     if (syncOptions.iframeEnabled) {
       return [{
         type: 'iframe',
-        url: ENDPOINT_USERSYNC + '/adx/usersync'
+        url: '//' + ENDPOINT + '/adx/usersync'
       }];
     }
   }

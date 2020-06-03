@@ -16,25 +16,17 @@ Brightcom's adapter integration to the Prebid library.
 var adUnits = [
   {
     code: 'test-leaderboard',
-    mediaTypes: {
-      banner: {
-        sizes: [[728, 90]]
-      }
-    },
+    sizes: [[728, 90]],
     bids: [{
       bidder: 'brightcom',
       params: {
-        publisherId: 2141020,
-        bidFloor: 0.01
+          publisherId: 2141020,
+          bidFloor: 0.01
       }
     }]
   }, {
     code: 'test-banner',
-    mediaTypes: {
-      banner: {
-        sizes: [[300, 250]]
-      }
-    },
+    sizes: [[300, 250]],
     bids: [{
       bidder: 'brightcom',
       params: {

@@ -1,9 +1,6 @@
-import * as utils from '../src/utils.js'
-import { registerBidder } from '../src/adapters/bidderFactory.js'
-import { config } from '../src/config.js'
-import { getStorageManager } from '../src/storageManager.js';
-
-const storage = getStorageManager();
+import * as utils from '../src/utils'
+import { registerBidder } from '../src/adapters/bidderFactory'
+import { config } from '../src/config'
 const BIDDER_CODE = 'ccx'
 const BID_URL = 'https://delivery.clickonometrics.pl/ortb/prebid/bid'
 const SUPPORTED_VIDEO_PROTOCOLS = [2, 3, 5, 6]
@@ -18,9 +15,9 @@ function _getDeviceObj () {
   return device
 }
 
-function _getSiteObj (bidderRequest) {
+function _getSiteObj () {
   let site = {}
-  let url = config.getConfig('pageUrl') || utils.deepAccess(window, 'location.href');
+  let url = config.getConfig('pageUrl') || utils.getTopWindowUrl()
   if (url.length > 0) {
     url = url.split('?')[0]
   }
@@ -170,26 +167,10 @@ export const spec = {
     if (validBidRequests.length > 0) {
       let requestBody = {}
       requestBody.imp = []
-      requestBody.site = _getSiteObj(bidderRequest)
+      requestBody.site = _getSiteObj()
       requestBody.device = _getDeviceObj()
       requestBody.id = bidderRequest.bids[0].auctionId
-      requestBody.ext = {'ce': (storage.cookiesAreEnabled() ? 1 : 0)}
-
-      // Attaching GDPR Consent Params
-      if (bidderRequest && bidderRequest.gdprConsent) {
-        requestBody.user = {
-          ext: {
-            consent: bidderRequest.gdprConsent.consentString
-          }
-        };
-
-        requestBody.regs = {
-          ext: {
-            gdpr: (bidderRequest.gdprConsent.gdprApplies ? 1 : 0)
-          }
-        };
-      }
-
+      requestBody.ext = {'ce': (utils.cookiesAreEnabled() ? 1 : 0)}
       utils._each(validBidRequests, function (bid) {
         requestBody.imp.push(_buildBid(bid))
       })

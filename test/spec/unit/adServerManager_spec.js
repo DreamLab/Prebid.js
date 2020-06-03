@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { getGlobal } from 'src/prebidGlobal.js';
-import { registerVideoSupport } from 'src/adServerManager.js';
+import { getGlobal } from 'src/prebidGlobal';
+import { registerVideoSupport } from 'src/adServerManager';
 
 const prebid = getGlobal();
 

@@ -1,7 +1,7 @@
 'use strict';
 
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import { BANNER, VIDEO } from '../src/mediaTypes.js';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import { BANNER, VIDEO } from '../src/mediaTypes';
 
 const BIDDER_CODE = 'adhese';
 const USER_SYNC_BASE_URL = 'https://user-sync.adhese.com/iframe/user_sync.html';
@@ -11,7 +11,7 @@ export const spec = {
   supportedMediaTypes: [BANNER, VIDEO],
 
   isBidRequestValid: function(bid) {
-    return !!(bid.params.account && bid.params.location && (bid.params.format || bid.mediaTypes.banner.sizes));
+    return !!(bid.params.account && bid.params.location && bid.params.format);
   },
 
   buildRequests: function(validBidRequests, bidderRequest) {
@@ -83,10 +83,7 @@ function adResponse(bid, ad) {
     width: Number(ad.width),
     height: Number(ad.height),
     creativeId: adDetails.creativeId,
-    dealId: adDetails.dealId,
-    adhese: {
-      originData: adDetails.originData
-    }
+    dealId: adDetails.dealId
   });
 
   if (bidResponse.mediaType === VIDEO) {
@@ -115,19 +112,7 @@ function mergeTargets(targets, target) {
 }
 
 function bidToSlotName(bid) {
-  if (bid.params.format) {
-    return bid.params.location + '-' + bid.params.format;
-  }
-
-  var sizes = bid.mediaTypes.banner.sizes;
-  sizes.sort();
-  var format = sizes.map(size => size[0] + 'x' + size[1]).join('_');
-
-  if (format.length > 0) {
-    return bid.params.location + '-' + format;
-  } else {
-    return bid.params.location;
-  }
+  return bid.params.location + '-' + bid.params.format;
 }
 
 function getAccount(validBidRequests) {
@@ -165,31 +150,22 @@ function getPrice(ad) {
 function getAdDetails(ad) {
   let creativeId = '';
   let dealId = '';
-  let originData = {};
 
   if (isAdheseAd(ad)) {
     creativeId = ad.id;
     dealId = ad.orderId;
-    originData = { priority: ad.priority, orderProperty: ad.orderProperty, adFormat: ad.adFormat, adType: ad.adType, libId: ad.libId, adspaceId: ad.adspaceId, viewableImpressionCounter: ad.viewableImpressionCounter, slotId: ad.slotID, slotName: ad.slotName, advertiserId: ad.advertiserId, adId: ad.id };
   } else {
     creativeId = ad.origin + (ad.originInstance ? '-' + ad.originInstance : '');
-    if (ad.originData) {
-      originData = ad.originData;
-      originData.slotId = ad.slotID;
-      originData.slotName = ad.slotName;
-      originData.adType = ad.adType;
-      if (ad.adFormat) originData.adFormat = ad.adFormat;
-      if (ad.originData.seatbid && ad.originData.seatbid.length) {
-        const seatbid = ad.originData.seatbid[0];
-        if (seatbid.bid && seatbid.bid.length) {
-          const bid = seatbid.bid[0];
-          creativeId = String(bid.crid || '');
-          dealId = String(bid.dealid || '');
-        }
+    if (ad.originData && ad.originData.seatbid && ad.originData.seatbid.length) {
+      const seatbid = ad.originData.seatbid[0];
+      if (seatbid.bid && seatbid.bid.length) {
+        const bid = seatbid.bid[0];
+        creativeId = String(bid.crid || '');
+        dealId = String(bid.dealid || '');
       }
     }
   }
-  return { creativeId: creativeId, dealId: dealId, originData: originData };
+  return { creativeId: creativeId, dealId: dealId };
 }
 
 function base64urlEncode(s) {

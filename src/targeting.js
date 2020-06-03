@@ -1,10 +1,10 @@
-import { uniques, isGptPubadsDefined, getHighestCpm, getOldestHighestCpmBid, groupBy, isAdUnitCodeMatchingSlot, timestamp, deepAccess, deepClone, logError, logWarn, logInfo } from './utils.js';
-import { config } from './config.js';
-import { NATIVE_TARGETING_KEYS } from './native.js';
-import { auctionManager } from './auctionManager.js';
-import { sizeSupported } from './sizeMapping.js';
-import { ADPOD } from './mediaTypes.js';
-import includes from 'core-js-pure/features/array/includes.js';
+import { uniques, isGptPubadsDefined, getHighestCpm, getOldestHighestCpmBid, groupBy, isAdUnitCodeMatchingSlot, timestamp, deepAccess, deepClone, logError, logWarn, logInfo } from './utils';
+import { config } from './config';
+import { NATIVE_TARGETING_KEYS } from './native';
+import { auctionManager } from './auctionManager';
+import { sizeSupported } from './sizeMapping';
+import { ADPOD } from './mediaTypes';
+import includes from 'core-js/library/fn/array/includes';
 
 const utils = require('./utils.js');
 var CONSTANTS = require('./constants.json');
@@ -21,8 +21,8 @@ export const TARGETING_KEYS = Object.keys(CONSTANTS.TARGETING_KEYS).map(
 // return unexpired bids
 const isBidNotExpired = (bid) => (bid.responseTimestamp + bid.ttl * 1000 + TTL_BUFFER) > timestamp();
 
-// return bids whose status is not set. Winning bids can only have a status of `rendered`.
-const isUnusedBid = (bid) => bid && ((bid.status && !includes([CONSTANTS.BID_STATUS.RENDERED], bid.status)) || !bid.status);
+// return bids whose status is not set. Winning bid can have status `targetingSet` or `rendered`.
+const isUnusedBid = (bid) => bid && ((bid.status && !includes([CONSTANTS.BID_STATUS.BID_TARGETING_SET, CONSTANTS.BID_STATUS.RENDERED], bid.status)) || !bid.status);
 
 export let filters = {
   isBidNotExpired,
@@ -31,24 +31,14 @@ export let filters = {
 
 // If two bids are found for same adUnitCode, we will use the highest one to take part in auction
 // This can happen in case of concurrent auctions
-// If adUnitBidLimit is set above 0 return top N number of bids
-export function getHighestCpmBidsFromBidPool(bidsReceived, highestCpmCallback, adUnitBidLimit = 0) {
+export function getHighestCpmBidsFromBidPool(bidsReceived, highestCpmCallback) {
   const bids = [];
-  const dealPrioritization = config.getConfig('sendBidsControl.dealPrioritization');
   // bucket by adUnitcode
   let buckets = groupBy(bidsReceived, 'adUnitCode');
   // filter top bid for each bucket by bidder
   Object.keys(buckets).forEach(bucketKey => {
-    let bucketBids = [];
     let bidsByBidder = groupBy(buckets[bucketKey], 'bidderCode');
-    Object.keys(bidsByBidder).forEach(key => bucketBids.push(bidsByBidder[key].reduce(highestCpmCallback)));
-    // if adUnitBidLimit is set, pass top N number bids
-    if (adUnitBidLimit > 0) {
-      bucketBids = dealPrioritization ? bucketBids(sortByDealAndPriceBucketOrCpm(true)) : bucketBids.sort((a, b) => b.cpm - a.cpm);
-      bids.push(...bucketBids.slice(0, adUnitBidLimit));
-    } else {
-      bids.push(...bucketBids);
-    }
+    Object.keys(bidsByBidder).forEach(key => bids.push(bidsByBidder[key].reduce(highestCpmCallback)));
   });
   return bids;
 }
@@ -74,23 +64,17 @@ export function getHighestCpmBidsFromBidPool(bidsReceived, highestCpmCallback, a
 *    "hb_pb": "2"
 *  }]
 */
-export function sortByDealAndPriceBucketOrCpm(useCpm = false) {
-  return function(a, b) {
-    if (a.adUnitTargeting.hb_deal !== undefined && b.adUnitTargeting.hb_deal === undefined) {
-      return -1;
-    }
-
-    if ((a.adUnitTargeting.hb_deal === undefined && b.adUnitTargeting.hb_deal !== undefined)) {
-      return 1;
-    }
-
-    // assuming both values either have a deal or don't have a deal - sort by the hb_pb param
-    if (useCpm) {
-      return b.cpm - a.cpm;
-    }
-
-    return b.adUnitTargeting.hb_pb - a.adUnitTargeting.hb_pb;
+export function sortByDealAndPriceBucket(a, b) {
+  if (a.adUnitTargeting.hb_deal !== undefined && b.adUnitTargeting.hb_deal === undefined) {
+    return -1;
   }
+
+  if ((a.adUnitTargeting.hb_deal === undefined && b.adUnitTargeting.hb_deal !== undefined)) {
+    return 1;
+  }
+
+  // assuming both values either have a deal or don't have a deal - sort by the hb_pb param
+  return b.adUnitTargeting.hb_pb - a.adUnitTargeting.hb_pb;
 }
 
 /**
@@ -110,18 +94,16 @@ export function newTargeting(auctionManager) {
     latestAuctionForAdUnit[adUnitCode] = auctionId;
   };
 
-  targeting.resetPresetTargeting = function(adUnitCode, customSlotMatching) {
+  targeting.resetPresetTargeting = function(adUnitCode) {
     if (isGptPubadsDefined()) {
       const adUnitCodes = getAdUnitCodes(adUnitCode);
       const adUnits = auctionManager.getAdUnits().filter(adUnit => includes(adUnitCodes, adUnit.code));
       window.googletag.pubads().getSlots().forEach(slot => {
-        let customSlotMatchingFunc = utils.isFn(customSlotMatching) && customSlotMatching(slot);
         pbTargetingKeys.forEach(function(key) {
           // reset only registered adunits
           adUnits.forEach(function(unit) {
             if (unit.code === slot.getAdUnitPath() ||
-                unit.code === slot.getSlotElementId() ||
-                (utils.isFn(customSlotMatchingFunc) && customSlotMatchingFunc(unit.code))) {
+                unit.code === slot.getSlotElementId()) {
               slot.setTargeting(key, null);
             }
           });
@@ -148,40 +130,6 @@ export function newTargeting(auctionManager) {
   };
 
   /**
-   * checks if bid has targeting set and belongs based on matching ad unit codes
-   * @return {boolean} true or false
-   */
-  function bidShouldBeAddedToTargeting(bid, adUnitCodes) {
-    return bid.adserverTargeting && adUnitCodes &&
-      ((utils.isArray(adUnitCodes) && includes(adUnitCodes, bid.adUnitCode)) ||
-      (typeof adUnitCodes === 'string' && bid.adUnitCode === adUnitCodes));
-  };
-
-  /**
-   * Returns targeting for any bids which have deals if alwaysIncludeDeals === true
-   */
-  function getDealBids(adUnitCodes, bidsReceived) {
-    if (config.getConfig('targetingControls.alwaysIncludeDeals') === true) {
-      const standardKeys = TARGETING_KEYS.concat(NATIVE_TARGETING_KEYS);
-
-      // we only want the top bid from bidders who have multiple entries per ad unit code
-      const bids = getHighestCpmBidsFromBidPool(bidsReceived, getHighestCpm);
-
-      // populate targeting keys for the remaining bids if they have a dealId
-      return bids.map(bid => {
-        if (bid.dealId && bidShouldBeAddedToTargeting(bid, adUnitCodes)) {
-          return {
-            [bid.adUnitCode]: getTargetingMap(bid, standardKeys.filter(
-              key => typeof bid.adserverTargeting[key] !== 'undefined')
-            )
-          };
-        }
-      }).filter(bid => bid); // removes empty elements in array
-    }
-    return [];
-  };
-
-  /**
    * Returns all ad server targeting for all ad units.
    * @param {string=} adUnitCode
    * @return {Object.<string,targeting>} targeting
@@ -193,7 +141,7 @@ export function newTargeting(auctionManager) {
     // `alwaysUseBid=true`. If sending all bids is enabled, add targeting for losing bids.
     var targeting = getWinningBidTargeting(adUnitCodes, bidsReceived)
       .concat(getCustomBidTargeting(adUnitCodes, bidsReceived))
-      .concat(config.getConfig('enableSendAllBids') ? getBidLandscapeTargeting(adUnitCodes, bidsReceived) : getDealBids(adUnitCodes, bidsReceived));
+      .concat(config.getConfig('enableSendAllBids') ? getBidLandscapeTargeting(adUnitCodes, bidsReceived) : []);
 
     // store a reference of the targeting keys
     targeting.map(adUnitCode => {
@@ -242,7 +190,7 @@ export function newTargeting(auctionManager) {
         adUnitCode,
         adUnitTargeting: targetingCopy[adUnitCode]
       };
-    }).sort(sortByDealAndPriceBucketOrCpm());
+    }).sort(sortByDealAndPriceBucket);
 
     // iterate through the targeting based on above list and transform the keys into the query-equivalent and count characters
     return targetingMap.reduce(function (accMap, currMap, index, arr) {
@@ -495,7 +443,7 @@ export function newTargeting(auctionManager) {
   }
 
   function getCustomKeys() {
-    let standardKeys = getStandardKeys().concat(NATIVE_TARGETING_KEYS);
+    let standardKeys = getStandardKeys();
     return function(key) {
       return standardKeys.indexOf(key) === -1;
     }
@@ -536,12 +484,16 @@ export function newTargeting(auctionManager) {
    */
   function getBidLandscapeTargeting(adUnitCodes, bidsReceived) {
     const standardKeys = TARGETING_KEYS.concat(NATIVE_TARGETING_KEYS);
-    const adUnitBidLimit = config.getConfig('sendBidsControl.bidLimit');
-    const bids = getHighestCpmBidsFromBidPool(bidsReceived, getHighestCpm, adUnitBidLimit);
+
+    const bids = getHighestCpmBidsFromBidPool(bidsReceived, getHighestCpm);
 
     // populate targeting keys for the remaining bids
     return bids.map(bid => {
-      if (bidShouldBeAddedToTargeting(bid, adUnitCodes)) {
+      if (
+        bid.adserverTargeting && adUnitCodes &&
+        ((utils.isArray(adUnitCodes) && includes(adUnitCodes, bid.adUnitCode)) ||
+        (typeof adUnitCodes === 'string' && bid.adUnitCode === adUnitCodes))
+      ) {
         return {
           [bid.adUnitCode]: getTargetingMap(bid, standardKeys.filter(
             key => typeof bid.adserverTargeting[key] !== 'undefined')

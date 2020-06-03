@@ -11,12 +11,8 @@ Innity Bidder Adapter for Prebid.js.
 # Test Parameters
 ```	
     var adUnits = [{
-      code: '/19968336/header-bid-tag-0',
-      mediaTypes: {
-        banner: {
-          sizes: [[300, 250]],
-        }
-      },
+      code: 'div-gpt-ad-1460505748561-0',
+      sizes: [[300, 250]],
       bids: [{
         bidder: 'innity',
         params: {

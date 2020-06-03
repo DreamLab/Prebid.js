@@ -1,10 +1,7 @@
 // RealVu Analytics Adapter
-import adapter from '../src/AnalyticsAdapter.js';
-import adapterManager from '../src/adapterManager.js';
+import adapter from '../src/AnalyticsAdapter';
+import adapterManager from '../src/adapterManager';
 import CONSTANTS from '../src/constants.json';
-import { getStorageManager } from '../src/storageManager.js';
-
-const storage = getStorageManager();
 
 const utils = require('../src/utils.js');
 
@@ -73,7 +70,7 @@ export let lib = {
     });
     z.doLog = (window.top1.location.search.match(/boost_log/) || document.referrer.match(/boost_log/)) ? 1 : 0;
     if (z.doLog) {
-      window.setTimeout(z.scr('https://ac.realvu.net/realvu_aa_viz.js'), 500);
+      window.setTimeout(z.scr(window.top1.location.protocol + '//ac.realvu.net/realvu_aa_viz.js'), 500);
     }
   },
 
@@ -180,7 +177,7 @@ export let lib = {
 
   tru: function (a, f) {
     let pin = a.pins[0];
-    let s2 = 'https://ac.realvu.net/flip/3/c=' + pin.partner_id +
+    let s2 = '//ac.realvu.net/flip/3/c=' + pin.partner_id +
       '_f=' + f + '_r=' + a.riff +
       '_s=' + a.w + 'x' + a.h;
     if (a.p) s2 += '_p=' + a.p;
@@ -782,7 +779,7 @@ export let lib = {
   writePos: function (a) {
     try {
       let v = a.x + ',' + a.y + ',' + a.w + ',' + a.h;
-      storage.setDataInLocalStorage(this.keyPos(a), v);
+      localStorage.setItem(this.keyPos(a), v);
     } catch (ex) {
       /* continue regardless of error */
     }
@@ -790,7 +787,7 @@ export let lib = {
 
   readPos: function (a) {
     try {
-      let s = storage.getDataFromLocalStorage(this.keyPos(a));
+      let s = localStorage.getItem(this.keyPos(a));
       if (s) {
         let v = s.split(',');
         a.x = parseInt(v[0], 10);
@@ -809,7 +806,7 @@ export let lib = {
   incrMem: function(a, evt, name) {
     try {
       let k1 = this.keyPos(a) + '.' + name;
-      let vmem = storage.getDataFromLocalStorage(k1);
+      let vmem = localStorage.getItem(k1);
       if (vmem == null) vmem = '1:3';
       let vr = vmem.split(':');
       let nv = parseInt(vr[0], 10);
@@ -822,7 +819,7 @@ export let lib = {
       if (evt == 'v') {
         nv |= 1;
       }
-      storage.setDataInLocalStorage(k1, nv + ':' + nr);
+      localStorage.setItem(k1, nv + ':' + nr);
     } catch (ex) {
       /* do nothing */
     }
@@ -830,7 +827,7 @@ export let lib = {
 
   score: function (a, name) {
     try {
-      let vstr = storage.getDataFromLocalStorage(this.keyPos(a) + '.' + name);
+      let vstr = localStorage.getItem(this.keyPos(a) + '.' + name);
       if (vstr != null) {
         let vr = vstr.split(':');
         let nv = parseInt(vr[0], 10);

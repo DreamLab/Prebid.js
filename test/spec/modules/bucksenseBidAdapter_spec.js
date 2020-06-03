@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {spec} from 'modules/bucksenseBidAdapter.js';
+import {spec} from 'modules/bucksenseBidAdapter';
 
 describe('Bucksense Adapter', function() {
   const BIDDER_CODE = 'bucksense';
@@ -75,11 +75,11 @@ describe('Bucksense Adapter', function() {
         'auctionStart': 1557176022728,
         'timeout': 1000,
         'refererInfo': {
-          'referer': 'https://stefanod.hera.pe/prebid/?pbjs_debug=true',
+          'referer': 'http://stefanod.hera.pe/prebid/?pbjs_debug=true',
           'reachedTop': true,
           'numIframes': 0,
           'stack': [
-            'https://stefanod.hera.pe/prebid/?pbjs_debug=true'
+            'http://stefanod.hera.pe/prebid/?pbjs_debug=true'
           ]
         },
         'start': 1557176022731
@@ -104,12 +104,12 @@ describe('Bucksense Adapter', function() {
     beforeEach(function() {
       serverRequest = {
         'method': 'POST',
-        'url': 'https://prebid.bksn.se/prebidjs/',
+        'url': 'https://prebid.bksn.se:445/prebidjs/',
         'data': {
           'pub_id': 'prebid.org',
           'pl_id': '1000',
           'secure': 0,
-          'href': 'https://prebid.org/developers.html',
+          'href': 'http://prebid.org/developers.html',
           'bid_id': '27aaf8e96d9fd5',
           'params': {
             'placementId': '1000'

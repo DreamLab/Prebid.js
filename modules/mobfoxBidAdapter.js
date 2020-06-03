@@ -1,4 +1,4 @@
-import {registerBidder} from '../src/adapters/bidderFactory.js';
+import {registerBidder} from '../src/adapters/bidderFactory';
 
 const utils = require('../src/utils.js');
 const BIDDER_CODE = 'mobfox';

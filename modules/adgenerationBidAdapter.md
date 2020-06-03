@@ -15,61 +15,57 @@ AdGeneration bid adapter supports Banner and Native.
 # Test Parameters
 ```
 var adUnits = [
-    // Banner adUnit
-    {
-        code: 'banner-div', // banner
-        mediaTypes: {
-            banner: {
-                sizes: [[300, 250]],
-            }
-        },
-        bids: [
-            {
-                bidder: 'adg',
-                params: {
-                    id: '58278', // banner
-                }
-            },
-        ]
-    },
-    // Native adUnit
-    {
-        code: 'native-div',
-        sizes: [[1,1]],
-        mediaTypes: {
-            native: {
-                image: {
+   // Banner adUnit
+   {
+       code: 'banner-div', // banner
+               sizes: [[300, 250]],
+               bids: [
+                 {
+                   bidder: 'adg',
+                   params: {
+                     id: '58278', // banner
+                   }
+                 },
+               ]
+   },
+   // Native adUnit
+   {
+      code: 'native-div',
+      sizes: [[1,1]],
+              mediaTypes: {
+                native: {
+                  image: {
                     required: true
-                },
-                title: {
+                  },
+                  title: {
                     required: true,
                     len: 80
-                },
-                sponsoredBy: {
+                  },
+                  sponsoredBy: {
                     required: true
-                },
-                clickUrl: {
+                  },
+                  clickUrl: {
                     required: true
-                },
-                body: {
+                  },
+                  body: {
                     required: true
-                },
-                icon: {
+                  },
+                  icon: {
                     required: true
-                },
-                privacyLink: {
+                  },
+                  privacyLink: {
                     required: true
+                  },
                 },
-            },
-        },
-        bids: [
-            {
-                bidder: 'adg',
-                params: {
+              },
+              bids: [
+                {
+                  bidder: 'adg',
+                  params: {
                     id: '58279', //native
-                }
-            },
-        ]
+                  }
+                },
+              ]
    },
 ];
 ```

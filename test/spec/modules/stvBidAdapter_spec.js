@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { spec } from 'modules/stvBidAdapter.js';
-import { newBidder } from 'src/adapters/bidderFactory.js';
+import { spec } from 'modules/stvBidAdapter';
+import { newBidder } from 'src/adapters/bidderFactory';
 
 const VADS_ENDPOINT_URL = 'https://ads.smartstream.tv/r/';
 

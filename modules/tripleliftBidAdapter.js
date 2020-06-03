@@ -1,7 +1,6 @@
-import { BANNER } from '../src/mediaTypes.js';
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import * as utils from '../src/utils.js';
-import { config } from '../src/config.js';
+import { BANNER } from '../src/mediaTypes';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import * as utils from '../src/utils';
 
 const BIDDER_CODE = 'triplelift';
 const STR_ENDPOINT = 'https://tlx.3lift.com/header/auction?';
@@ -18,7 +17,7 @@ export const tripleliftAdapterSpec = {
 
   buildRequests: function(bidRequests, bidderRequest) {
     let tlCall = STR_ENDPOINT;
-    let data = _buildPostBody(bidRequests);
+    let data = _buildPostBody(bidRequests, bidderRequest);
 
     tlCall = utils.tryAppendQueryString(tlCall, 'lib', 'prebid');
     tlCall = utils.tryAppendQueryString(tlCall, 'v', '$prebid.version$');
@@ -43,14 +42,6 @@ export const tripleliftAdapterSpec = {
       }
     }
 
-    if (bidderRequest && bidderRequest.uspConsent) {
-      tlCall = utils.tryAppendQueryString(tlCall, 'us_privacy', bidderRequest.uspConsent);
-    }
-
-    if (config.getConfig('coppa') === true) {
-      tlCall = utils.tryAppendQueryString(tlCall, 'coppa', true);
-    }
-
     if (tlCall.lastIndexOf('&') === tlCall.length - 1) {
       tlCall = tlCall.substring(0, tlCall.length - 1);
     }
@@ -71,42 +62,24 @@ export const tripleliftAdapterSpec = {
     });
   },
 
-  getUserSyncs: function(syncOptions, responses, gdprConsent, usPrivacy) {
-    let syncType = _getSyncType(syncOptions);
-    if (!syncType) return;
-
-    let syncEndpoint = 'https://eb2.3lift.com/sync?';
-
-    if (syncType === 'image') {
-      syncEndpoint = utils.tryAppendQueryString(syncEndpoint, 'px', 1);
-      syncEndpoint = utils.tryAppendQueryString(syncEndpoint, 'src', 'prebid');
-    }
-
+  getUserSyncs: function(syncOptions) {
+    let ibCall = '//ib.3lift.com/sync?';
     if (consentString !== null) {
-      syncEndpoint = utils.tryAppendQueryString(syncEndpoint, 'gdpr', gdprApplies);
-      syncEndpoint = utils.tryAppendQueryString(syncEndpoint, 'cmp_cs', consentString);
+      ibCall = utils.tryAppendQueryString(ibCall, 'gdpr', gdprApplies);
+      ibCall = utils.tryAppendQueryString(ibCall, 'cmp_cs', consentString);
     }
 
-    if (usPrivacy) {
-      syncEndpoint = utils.tryAppendQueryString(syncEndpoint, 'us_privacy', usPrivacy);
+    if (syncOptions.iframeEnabled) {
+      return [{
+        type: 'iframe',
+        url: ibCall
+      }];
     }
-
-    return [{
-      type: syncType,
-      url: syncEndpoint
-    }];
   }
 }
 
-function _getSyncType(syncOptions) {
-  if (!syncOptions) return;
-  if (syncOptions.iframeEnabled) return 'iframe';
-  if (syncOptions.pixelEnabled) return 'image';
-}
-
-function _buildPostBody(bidRequests) {
+function _buildPostBody(bidRequests, bidderRequest) {
   let data = {};
-  let { schain } = bidRequests[0];
   data.imp = bidRequests.map(function(bid, index) {
     return {
       id: index,
@@ -115,60 +88,17 @@ function _buildPostBody(bidRequests) {
       banner: {
         format: _sizes(bid.sizes)
       }
-    };
+    }
   });
 
-  let eids = [
-    ...getUnifiedIdEids(bidRequests),
-    ...getIdentityLinkEids(bidRequests),
-    ...getCriteoEids(bidRequests)
-  ];
-
+  let eids = handleConsortiaUserIds(bidderRequest)
   if (eids.length > 0) {
     data.user = {
       ext: {eids}
-    };
-  }
-
-  if (schain) {
-    data.ext = {
-      schain
     }
   }
+
   return data;
-}
-
-function getUnifiedIdEids(bidRequests) {
-  return getEids(bidRequests, 'tdid', 'adserver.org', 'TDID');
-}
-
-function getIdentityLinkEids(bidRequests) {
-  return getEids(bidRequests, 'idl_env', 'liveramp.com', 'idl');
-}
-
-function getCriteoEids(bidRequests) {
-  return getEids(bidRequests, 'criteoId', 'criteo.com', 'criteoId');
-}
-
-function getEids(bidRequests, type, source, rtiPartner) {
-  return bidRequests
-    .map(getUserId(type)) // bids -> userIds of a certain type
-    .filter((x) => !!x) // filter out null userIds
-    .map(formatEid(source, rtiPartner)); // userIds -> eid objects
-}
-
-function getUserId(type) {
-  return (bid) => (bid && bid.userId && bid.userId[type]);
-}
-
-function formatEid(source, rtiPartner) {
-  return (id) => ({
-    source,
-    uids: [{
-      id,
-      ext: { rtiPartner }
-    }]
-  });
 }
 
 function _sizes(sizeArray) {
@@ -183,6 +113,23 @@ function _sizes(sizeArray) {
 
 function _isValidSize(size) {
   return (size.length === 2 && typeof size[0] === 'number' && typeof size[1] === 'number');
+}
+
+function handleConsortiaUserIds(bidderRequest) {
+  let eids = [];
+  if (bidderRequest.userId && bidderRequest.userId.tdid) {
+    eids.push({
+      source: 'adserver.org',
+      uids: [{
+        id: bidderRequest.userId.tdid,
+        ext: {
+          rtiPartner: 'TDID'
+        }
+      }]
+    })
+  }
+
+  return eids;
 }
 
 function _buildResponseObject(bidderRequest, bid) {
@@ -203,8 +150,7 @@ function _buildResponseObject(bidderRequest, bid) {
       creativeId: creativeId,
       dealId: dealId,
       currency: 'USD',
-      ttl: 300,
-      tl_source: bid.tl_source,
+      ttl: 33,
     };
   };
   return bidResponse;

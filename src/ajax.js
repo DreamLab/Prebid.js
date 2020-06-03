@@ -1,6 +1,7 @@
-import { config } from './config.js';
+import {parse as parseURL, format as formatURL} from './url';
+import { config } from './config';
 
-var utils = require('./utils.js');
+var utils = require('./utils');
 
 const XHR_DONE = 4;
 
@@ -60,9 +61,9 @@ export function ajaxBuilder(timeout = 3000, {request, done} = {}) {
       }
 
       if (method === 'GET' && data) {
-        let urlInfo = utils.parseUrl(url, options);
+        let urlInfo = parseURL(url, options);
         Object.assign(urlInfo.search, data);
-        url = utils.buildUrl(urlInfo);
+        url = formatURL(urlInfo);
       }
 
       x.open(method, url, true);

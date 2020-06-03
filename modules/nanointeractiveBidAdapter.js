@@ -1,14 +1,11 @@
-import * as utils from '../src/utils.js';
-import {config} from '../src/config.js';
-import {registerBidder} from '../src/adapters/bidderFactory.js';
-import { getStorageManager } from '../src/storageManager.js';
-
-const storage = getStorageManager();
+import * as utils from '../src/utils';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import { BANNER } from '../src/mediaTypes';
 
 export const BIDDER_CODE = 'nanointeractive';
-export const END_POINT_URL = 'https://ad.audiencemanager.de';
+export const ENGINE_BASE_URL = 'https://www.audiencemanager.de/hb';
 
-export const SSP_PLACEMENT_ID = 'pid';
+export const DATA_PARTNER_PIXEL_ID = 'pid';
 export const NQ = 'nq';
 export const NQ_NAME = 'name';
 export const CATEGORY = 'category';
@@ -17,32 +14,25 @@ export const SUB_ID = 'subId';
 export const REF = 'ref';
 export const LOCATION = 'loc';
 
-var nanoPid = '5a1ec660eb0a191dfa591172';
-
 export const spec = {
 
   code: BIDDER_CODE,
-  aliases: ['ni'],
+  supportedMediaTypes: [BANNER],
 
-  isBidRequestValid(bid) {
-    const pid = bid.params[SSP_PLACEMENT_ID];
+  isBidRequestValid (bid) {
+    const pid = bid.params[DATA_PARTNER_PIXEL_ID];
     return !!(pid);
   },
-
-  buildRequests(validBidRequests, bidderRequest) {
+  buildRequests (bidRequests) {
     let payload = [];
-    validBidRequests.forEach(
-      bid => payload.push(createSingleBidRequest(bid, bidderRequest))
-    );
-    const url = getEndpointUrl() + '/hb';
-
+    bidRequests.forEach(bid => payload.push(createSingleBidRequest(bid)));
     return {
       method: 'POST',
-      url: url,
+      url: ENGINE_BASE_URL,
       data: JSON.stringify(payload)
     };
   },
-  interpretResponse(serverResponse) {
+  interpretResponse (serverResponse) {
     const bids = [];
     serverResponse.body.forEach(serverBid => {
       if (isEngineResponseValid(serverBid)) {
@@ -50,58 +40,24 @@ export const spec = {
       }
     });
     return bids;
-  },
-  getUserSyncs: function(syncOptions) {
-    const syncs = [];
-    if (syncOptions.iframeEnabled) {
-      syncs.push({
-        type: 'iframe',
-        url: getEndpointUrl() + '/hb/cookieSync/' + nanoPid
-      });
-    }
-
-    if (syncOptions.pixelEnabled) {
-      syncs.push({
-        type: 'image',
-        url: getEndpointUrl() + '/hb/cookieSync/' + nanoPid
-      });
-    }
-    return syncs;
   }
-
 };
 
-function createSingleBidRequest(bid, bidderRequest) {
-  const location = utils.deepAccess(bidderRequest, 'refererInfo.referer');
-  const origin = utils.getOrigin();
-
-  nanoPid = bid.params[SSP_PLACEMENT_ID] || nanoPid;
-
-  const data = {
-    [SSP_PLACEMENT_ID]: bid.params[SSP_PLACEMENT_ID],
+function createSingleBidRequest (bid) {
+  return {
+    [DATA_PARTNER_PIXEL_ID]: bid.params[DATA_PARTNER_PIXEL_ID],
     [NQ]: [createNqParam(bid)],
     [CATEGORY]: [createCategoryParam(bid)],
     [SUB_ID]: createSubIdParam(bid),
-    [REF]: createRefParam(),
+    [REF]: createRefParam(bid),
     sizes: bid.sizes.map(value => value[0] + 'x' + value[1]),
     bidId: bid.bidId,
-    cors: origin,
-    [LOCATION]: location,
-    lsUserId: getLsUserId()
+    cors: utils.getOrigin(),
+    [LOCATION]: createLocationParam(),
   };
-
-  if (bidderRequest && bidderRequest.gdprConsent) {
-    data['gdprConsent'] = bidderRequest.gdprConsent.consentString;
-    data['gdprApplies'] = (bidderRequest.gdprConsent.gdprApplies) ? '1' : '0';
-  }
-
-  return data;
 }
 
-function createSingleBidResponse(serverBid) {
-  if (serverBid.userId) {
-    storage.setDataInLocalStorage('lsUserId', serverBid.userId);
-  }
+function createSingleBidResponse (serverBid) {
   return {
     requestId: serverBid.id,
     cpm: serverBid.cpm,
@@ -111,49 +67,32 @@ function createSingleBidResponse(serverBid) {
     ttl: serverBid.ttl,
     creativeId: serverBid.creativeId,
     netRevenue: serverBid.netRevenue || true,
-    currency: serverBid.currency
+    currency: serverBid.currency,
   };
 }
 
-function createNqParam(bid) {
+function createNqParam (bid) {
   return bid.params[NQ_NAME] ? utils.getParameterByName(bid.params[NQ_NAME]) : bid.params[NQ] || null;
 }
 
-function createCategoryParam(bid) {
+function createCategoryParam (bid) {
   return bid.params[CATEGORY_NAME] ? utils.getParameterByName(bid.params[CATEGORY_NAME]) : bid.params[CATEGORY] || null;
 }
 
-function createSubIdParam(bid) {
+function createSubIdParam (bid) {
   return bid.params[SUB_ID] || null;
 }
 
-function createRefParam() {
-  try {
-    return window.top.document.referrer;
-  } catch (ex) {
-    return document.referrer;
-  }
+function createRefParam (bid) {
+  return bid.params[REF] ? null : utils.getTopWindowReferrer() || null;
 }
 
-function isEngineResponseValid(response) {
+function createLocationParam () {
+  return utils.getTopWindowLocation().href;
+}
+
+function isEngineResponseValid (response) {
   return !!response.cpm && !!response.ad;
-}
-
-/**
- * Used mainly for debugging
- *
- * @returns string
- */
-function getEndpointUrl() {
-  const nanoConfig = config.getConfig('nano');
-  return (nanoConfig && nanoConfig['endpointUrl']) || END_POINT_URL;
-}
-
-function getLsUserId() {
-  if (storage.getDataFromLocalStorage('lsUserId') != null) {
-    return storage.getDataFromLocalStorage('lsUserId');
-  }
-  return null;
 }
 
 registerBidder(spec);

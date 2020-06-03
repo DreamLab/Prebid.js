@@ -1,11 +1,11 @@
-import * as utils from '../src/utils.js';
-import {ajax} from '../src/ajax.js';
-import adapter from '../src/AnalyticsAdapter.js';
+import * as utils from '../src/utils';
+import {ajax} from '../src/ajax';
+import adapter from '../src/AnalyticsAdapter';
 import CONSTANTS from '../src/constants.json';
-import adapterManager from '../src/adapterManager.js';
+import adapterManager from '../src/adapterManager';
 
 const ANALYTICSTYPE = 'endpoint';
-const URL = 'https://lwadm.com/analytics/10';
+const URL = '//lwadm.com/analytics/10';
 const EMPTYURL = '';
 const REQUESTSENT = 1;
 const RESPONSESENT = 2;
@@ -16,7 +16,7 @@ let initOptions;
 export const BID_WON_TIMEOUT = 500;
 
 const cache = {
-  auctions: {}
+  auctions: {},
 };
 
 let livewrappedAnalyticsAdapter = Object.assign(adapter({EMPTYURL, ANALYTICSTYPE}), {
@@ -27,7 +27,7 @@ let livewrappedAnalyticsAdapter = Object.assign(adapter({EMPTYURL, ANALYTICSTYPE
     switch (eventType) {
       case CONSTANTS.EVENTS.AUCTION_INIT:
         utils.logInfo('LIVEWRAPPED_AUCTION_INIT:', args);
-        cache.auctions[args.auctionId] = {bids: {}, bidAdUnits: {}};
+        cache.auctions[args.auctionId] = {bids: {}};
         break;
       case CONSTANTS.EVENTS.BID_REQUESTED:
         utils.logInfo('LIVEWRAPPED_BID_REQUESTED:', args);
@@ -59,16 +59,8 @@ let livewrappedAnalyticsAdapter = Object.assign(adapter({EMPTYURL, ANALYTICSTYPE
         bidResponse.cpm = args.cpm;
         bidResponse.ttr = args.timeToRespond;
         bidResponse.readyToSend = 1;
-        bidResponse.mediaType = args.mediaType == 'native' ? 2 : 1;
         if (!bidResponse.ttr) {
           bidResponse.ttr = time - bidResponse.start;
-        }
-        if (!cache.auctions[args.auctionId].bidAdUnits[bidResponse.adUnit]) {
-          cache.auctions[args.auctionId].bidAdUnits[bidResponse.adUnit] =
-            {
-              sent: 0,
-              timeStamp: cache.auctions[args.auctionId].timeStamp
-            };
         }
         break;
       case CONSTANTS.EVENTS.BIDDER_DONE:
@@ -122,7 +114,6 @@ livewrappedAnalyticsAdapter.sendEvents = function() {
     responses: getResponses(),
     wins: getWins(),
     timeouts: getTimeouts(),
-    bidAdUnits: getbidAdUnits(),
     rcv: getAdblockerRecovered()
   };
 
@@ -133,7 +124,7 @@ livewrappedAnalyticsAdapter.sendEvents = function() {
     return;
   }
 
-  ajax(initOptions.endpoint || URL, undefined, JSON.stringify(events), {method: 'POST'});
+  ajax(URL, undefined, JSON.stringify(events), {method: 'POST'});
 }
 
 function getAdblockerRecovered() {
@@ -182,8 +173,7 @@ function getResponses() {
           height: bid.height,
           cpm: bid.cpm,
           ttr: bid.ttr,
-          IsBid: bid.isBid,
-          mediaType: bid.mediaType
+          IsBid: bid.isBid
         });
       }
     });
@@ -209,7 +199,6 @@ function getWins() {
           width: bid.width,
           height: bid.height,
           cpm: bid.cpm,
-          mediaType: bid.mediaType
         });
       }
     });
@@ -238,27 +227,6 @@ function getTimeouts() {
   });
 
   return timeouts;
-}
-
-function getbidAdUnits() {
-  var bidAdUnits = [];
-
-  Object.keys(cache.auctions).forEach(auctionId => {
-    let auction = cache.auctions[auctionId];
-    Object.keys(auction.bidAdUnits).forEach(adUnit => {
-      let bidAdUnit = auction.bidAdUnits[adUnit];
-      if (!bidAdUnit.sent) {
-        bidAdUnit.sent = 1;
-
-        bidAdUnits.push({
-          adUnit: adUnit,
-          timeStamp: bidAdUnit.timeStamp
-        });
-      }
-    });
-  });
-
-  return bidAdUnits;
 }
 
 adapterManager.registerAnalyticsAdapter({

@@ -2,7 +2,7 @@
 
 **Module Name**: Video Reach Bidder Adapter  
 **Module Type**: Bidder Adapter  
-**Maintainer**: hello@videoreach.com
+**Maintainer**: hello@videoreach.de
 
 # Description
 
@@ -16,17 +16,12 @@ Use `videoreach` as bidder.
 ```
     var adUnits = [{
       code: 'your-slot', //use exactly the same code as your slot div id.
-      mediaTypes: {
-          banner: {
-              sizes: [[1,1]]
-          }
-      },
+      sizes: [[1, 1]],
       bids: [{
-        bidder: 'videoreach',
-        params: { 
-            TagId: 'XXXXX'
-        }
+          bidder: 'videoreach',
+          params: { 
+              TagId: 'XXXXX'
+          }
       }]
     }];
-
 ```

@@ -1,6 +1,6 @@
 import {expect, assert} from 'chai';
-import {spec} from 'modules/kargoBidAdapter.js';
-import {config} from 'src/config.js';
+import {spec} from 'modules/kargoBidAdapter';
+import {config} from 'src/config';
 
 describe('kargo adapter tests', function () {
   var sandbox, clock, frozenNow = new Date();
@@ -34,7 +34,7 @@ describe('kargo adapter tests', function () {
   });
 
   describe('build request', function() {
-    var bids, undefinedCurrency, noAdServerCurrency, cookies = [], localStorageItems = [], sessionIds = [], requestCount = 0;
+    var bids, undefinedCurrency, noAdServerCurrency, cookies = [], localStorageItems = [], sessionIds = [];
 
     beforeEach(function () {
       undefinedCurrency = false;
@@ -49,8 +49,6 @@ describe('kargo adapter tests', function () {
           }
           return {adServerCurrency: 'USD'};
         }
-        if (key === 'debug') return true;
-        if (key === 'deviceAccess') return true;
         throw new Error(`Config stub incomplete! Missing key "${key}"`)
       });
 
@@ -224,7 +222,6 @@ describe('kargo adapter tests', function () {
     function getExpectedKrakenParams(excludeUserIds, excludeKrux, expectedRawCRB, expectedRawCRBCookie) {
       var base = {
         timeout: 200,
-        requestCount: requestCount++,
         currency: 'USD',
         cpmGranularity: 1,
         timestamp: frozenNow.getTime(),
@@ -255,8 +252,7 @@ describe('kargo adapter tests', function () {
             '2_80': 'd2a855a5-1b1c-4300-940e-a708fa1f1bde',
             '2_93': '5ee24138-5e03-4b9d-a953-38e833f2849f'
           },
-          optOut: false,
-          usp: '1---'
+          optOut: false
         },
         krux: {
           userID: 'rsgr9pnij',
@@ -301,8 +297,7 @@ describe('kargo adapter tests', function () {
 
       if (excludeUserIds === true) {
         base.userIDs = {
-          crbIDs: {},
-          usp: '1---'
+          crbIDs: {}
         };
         delete base.prebidRawBidRequests[0].userId.tdid;
       }
@@ -322,7 +317,7 @@ describe('kargo adapter tests', function () {
       if (excludeTdid) {
         delete clonedBids[0].userId.tdid;
       }
-      var request = spec.buildRequests(clonedBids, {timeout: 200, uspConsent: '1---', foo: 'bar'});
+      var request = spec.buildRequests(clonedBids, {timeout: 200, foo: 'bar'});
       expected.sessionId = getSessionId();
       sessionIds.push(expected.sessionId);
       var krakenParams = JSON.parse(decodeURIComponent(request.data.slice(5)));
@@ -441,8 +436,7 @@ describe('kargo adapter tests', function () {
           cpm: 3,
           adm: '<div id="1"></div>',
           width: 320,
-          height: 50,
-          metadata: {}
+          height: 50
         },
         2: {
           id: 'bar',
@@ -450,10 +444,7 @@ describe('kargo adapter tests', function () {
           adm: '<div id="2"></div>',
           width: 300,
           height: 250,
-          targetingCustom: 'dmpmptest1234',
-          metadata: {
-            landingPageDomain: 'https://foobar.com'
-          }
+          targetingCustom: 'dmpmptest1234'
         },
         3: {
           id: 'bar',
@@ -491,8 +482,7 @@ describe('kargo adapter tests', function () {
         creativeId: 'foo',
         dealId: undefined,
         netRevenue: true,
-        currency: 'USD',
-        meta: undefined
+        currency: 'USD'
       }, {
         requestId: '2',
         cpm: 2.5,
@@ -503,10 +493,7 @@ describe('kargo adapter tests', function () {
         creativeId: 'bar',
         dealId: 'dmpmptest1234',
         netRevenue: true,
-        currency: 'USD',
-        meta: {
-          clickUrl: 'https://foobar.com'
-        }
+        currency: 'USD'
       }, {
         requestId: '3',
         cpm: 2.5,
@@ -517,8 +504,7 @@ describe('kargo adapter tests', function () {
         creativeId: 'bar',
         dealId: undefined,
         netRevenue: true,
-        currency: 'USD',
-        meta: undefined
+        currency: 'USD'
       }];
       expect(resp).to.deep.equal(expectation);
     });

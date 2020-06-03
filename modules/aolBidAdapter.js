@@ -1,6 +1,6 @@
-import * as utils from '../src/utils.js';
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import { BANNER } from '../src/mediaTypes.js';
+import * as utils from '../src/utils';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import { BANNER } from '../src/mediaTypes';
 
 const AOL_BIDDERS_CODES = {
   AOL: 'aol',
@@ -100,18 +100,13 @@ function resolveEndpointCode(bid) {
 
 export const spec = {
   code: AOL_BIDDERS_CODES.AOL,
-  gvlid: 25,
   aliases: [AOL_BIDDERS_CODES.ONEMOBILE, AOL_BIDDERS_CODES.ONEDISPLAY],
   supportedMediaTypes: [BANNER],
   isBidRequestValid(bid) {
     return isMarketplaceBid(bid) || isMobileBid(bid);
   },
   buildRequests(bids, bidderRequest) {
-    const consentData = {};
-    if (bidderRequest) {
-      consentData.gdpr = bidderRequest.gdprConsent;
-      consentData.uspConsent = bidderRequest.uspConsent;
-    }
+    let consentData = bidderRequest ? bidderRequest.gdprConsent : null;
 
     return bids.map(bid => {
       const endpointCode = resolveEndpointCode(bid);
@@ -235,7 +230,7 @@ export const spec = {
     }
     return (url.indexOf('//') === 0) ? `${DEFAULT_PROTO}:${url}` : `${DEFAULT_PROTO}://${url}`;
   },
-  formatMarketplaceDynamicParams(params = {}, consentData = {}) {
+  formatMarketplaceDynamicParams(params = {}, consentData) {
     let queryParams = {};
 
     if (params.bidFloor) {
@@ -252,7 +247,7 @@ export const spec = {
 
     return paramsFormatted;
   },
-  formatOneMobileDynamicParams(params = {}, consentData = {}) {
+  formatOneMobileDynamicParams(params = {}, consentData) {
     if (this.isSecureProtocol()) {
       params.secure = NUMERIC_VALUES.TRUE;
     }
@@ -266,27 +261,32 @@ export const spec = {
 
     return paramsFormatted;
   },
-  buildOpenRtbRequestData(bid, consentData = {}) {
+  buildOpenRtbRequestData(bid, consentData) {
     let openRtbObject = {
       id: bid.params.id,
       imp: bid.params.imp
     };
 
-    if (this.isEUConsentRequired(consentData)) {
-      utils.deepSetValue(openRtbObject, 'regs.ext.gdpr', NUMERIC_VALUES.TRUE);
-      if (consentData.gdpr.consentString) {
-        utils.deepSetValue(openRtbObject, 'user.ext.consent', consentData.gdpr.consentString);
-      }
-    }
+    if (this.isConsentRequired(consentData)) {
+      openRtbObject.regs = {
+        ext: {
+          gdpr: NUMERIC_VALUES.TRUE
+        }
+      };
 
-    if (consentData.uspConsent) {
-      utils.deepSetValue(openRtbObject, 'regs.ext.us_privacy', consentData.uspConsent);
+      if (consentData.consentString) {
+        openRtbObject.user = {
+          ext: {
+            consent: consentData.consentString
+          }
+        };
+      }
     }
 
     return openRtbObject;
   },
-  isEUConsentRequired(consentData) {
-    return !!(consentData && consentData.gdpr && consentData.gdpr.gdprApplies);
+  isConsentRequired(consentData) {
+    return !!(consentData && consentData.gdprApplies);
   },
   formatKeyValues(keyValues) {
     let keyValuesHash = {};
@@ -300,16 +300,12 @@ export const spec = {
   formatConsentData(consentData) {
     let params = {};
 
-    if (this.isEUConsentRequired(consentData)) {
+    if (this.isConsentRequired(consentData)) {
       params.gdpr = NUMERIC_VALUES.TRUE;
 
-      if (consentData.gdpr.consentString) {
-        params.euconsent = consentData.gdpr.consentString;
+      if (consentData.consentString) {
+        params.euconsent = consentData.consentString;
       }
-    }
-
-    if (consentData.uspConsent) {
-      params.us_privacy = consentData.uspConsent;
     }
 
     return params;
@@ -357,7 +353,7 @@ export const spec = {
       cpm = bidData.price;
 
       if (cpm === null || isNaN(cpm)) {
-        utils.logError('Invalid price in bid response', AOL_BIDDERS_CODES.AOL, bidData);
+        utils.logError('Invalid price in bid response', AOL_BIDDERS_CODES.AOL, bid);
         return;
       }
     }

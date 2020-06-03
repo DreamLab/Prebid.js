@@ -1,8 +1,9 @@
-import { config } from '../src/config.js'
-import * as utils from '../src/utils.js'
-import { registerBidder } from '../src/adapters/bidderFactory.js'
-import { BANNER, NATIVE, VIDEO } from '../src/mediaTypes.js'
-import includes from 'core-js-pure/features/array/includes.js'
+import { config } from '../src/config'
+import * as utils from '../src/utils'
+import * as url from '../src/url'
+import { registerBidder } from '../src/adapters/bidderFactory'
+import { BANNER, NATIVE, VIDEO } from '../src/mediaTypes'
+import includes from 'core-js/library/fn/array/includes'
 
 /**
  * Adapter for requesting bids from adxcg.net
@@ -11,7 +12,6 @@ import includes from 'core-js-pure/features/array/includes.js'
  * updated to pass aditional auction and impression level parameters. added pass for video targeting parameters
  * updated to fix native support for image width/height and icon 2019.03.17
  * updated support for userid - pubcid,ttid 2019.05.28
- * updated to support prebid 3.0 -  remove non https, move to banner.xx.sizes, remove utils.getTopWindowLocation,remove utils.getTopWindowUrl(),remove utils.getTopWindowReferrer()
  */
 
 const BIDDER_CODE = 'adxcg'
@@ -20,7 +20,7 @@ const SOURCE = 'pbjs10'
 const VIDEO_TARGETING = ['id', 'mimes', 'minduration', 'maxduration', 'startdelay', 'skippable', 'playback_method', 'frameworks']
 const USER_PARAMS_AUCTION = ['forcedDspIds', 'forcedCampaignIds', 'forcedCreativeIds', 'gender', 'dnt', 'language']
 const USER_PARAMS_BID = ['lineparam1', 'lineparam2', 'lineparam3']
-const BIDADAPTERVERSION = 'r20191128PB30'
+const BIDADAPTERVERSION = 'r20180703PB10'
 
 export const spec = {
   code: BIDDER_CODE,
@@ -71,6 +71,8 @@ export const spec = {
   buildRequests: function (validBidRequests, bidderRequest) {
     utils.logMessage(`buildRequests: ${JSON.stringify(validBidRequests)}`)
 
+    let location = utils.getTopWindowLocation()
+    let secure = location.protocol === 'https:'
     let dt = new Date()
     let ratio = window.devicePixelRatio || 1
     let iobavailable = window && window.IntersectionObserver && window.IntersectionObserverEntry && window.IntersectionObserverEntry.prototype && 'intersectionRatio' in window.IntersectionObserverEntry.prototype
@@ -80,11 +82,16 @@ export const spec = {
       bt = Math.min(window.PREBID_TIMEOUT, bt)
     }
 
+    let requestUrl = url.parse(location.href)
+    requestUrl.search = null
+    requestUrl.hash = null
+
     // add common parameters
     let beaconParams = {
       renderformat: 'javascript',
       ver: BIDADAPTERVERSION,
-      secure: '1',
+      url: encodeURIComponent(utils.getTopWindowUrl()),
+      secure: secure ? '1' : '0',
       source: SOURCE,
       uw: window.screen.width,
       uh: window.screen.height,
@@ -99,10 +106,9 @@ export const spec = {
       rndid: Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000
     }
 
-    const referrer = utils.deepAccess(bidderRequest, 'refererInfo.referer');
-    const page = utils.deepAccess(bidderRequest, 'refererInfo.canonicalUrl') || config.getConfig('pageUrl') || utils.deepAccess(window, 'location.href');
-    beaconParams.ref = encodeURIComponent(referrer);
-    beaconParams.url = encodeURIComponent(page);
+    if (utils.getTopWindowReferrer()) {
+      beaconParams.ref = encodeURIComponent(utils.getTopWindowReferrer())
+    }
 
     if (bidderRequest && bidderRequest.gdprConsent && bidderRequest.gdprConsent.gdprApplies) {
       beaconParams.gdpr = bidderRequest.gdprConsent.gdprApplies ? '1' : '0'
@@ -125,14 +131,7 @@ export const spec = {
     validBidRequests.forEach((bid, index) => {
       adZoneIds.push(utils.getBidIdParameter('adzoneid', bid.params))
       prebidBidIds.push(bid.bidId)
-
-      if (isBannerRequest(bid)) {
-        sizes.push(utils.parseSizesInput(bid.mediaTypes.banner.sizes).join('|'))
-      }
-
-      if (isNativeRequest(bid)) {
-        sizes.push('0x0')
-      }
+      sizes.push(utils.parseSizesInput(bid.sizes).join('|'))
 
       let bidfloor = utils.getBidIdParameter('bidfloor', bid.params) || 0
       bidfloors.push(bidfloor)
@@ -145,7 +144,6 @@ export const spec = {
         }
         // copy video context params
         beaconParams['video.context' + '.' + index] = utils.deepAccess(bid, 'mediaTypes.video.context')
-        sizes.push(utils.parseSizesInput(bid.mediaTypes.video.playerSize).join('|'))
       }
 
       // copy all custom parameters impression level parameters not supported above
@@ -170,17 +168,9 @@ export const spec = {
       beaconParams.tdid = validBidRequests[0].userId.tdid;
     }
 
-    if (utils.isStr(utils.deepAccess(validBidRequests, '0.userId.id5id'))) {
-      beaconParams.id5id = validBidRequests[0].userId.id5id;
-    }
-
-    if (utils.isStr(utils.deepAccess(validBidRequests, '0.userId.idl_env'))) {
-      beaconParams.idl_env = validBidRequests[0].userId.idl_env;
-    }
-
-    let adxcgRequestUrl = utils.buildUrl({
-      protocol: 'https',
-      hostname: 'hbps.adxcg.net',
+    let adxcgRequestUrl = url.format({
+      protocol: secure ? 'https' : 'http',
+      hostname: secure ? 'hbps.adxcg.net' : 'hbp.adxcg.net',
       pathname: '/get/adi',
       search: beaconParams
     })
@@ -282,7 +272,7 @@ export const spec = {
     if (syncOptions.iframeEnabled) {
       return [{
         type: 'iframe',
-        url: 'https://cdn.adxcg.net/pb-sync.html'
+        url: '//cdn.adxcg.net/pb-sync.html'
       }]
     }
   }
@@ -290,14 +280,6 @@ export const spec = {
 
 function isVideoRequest (bid) {
   return bid.mediaType === 'video' || !!utils.deepAccess(bid, 'mediaTypes.video')
-}
-
-function isBannerRequest (bid) {
-  return bid.mediaType === 'banner' || !!utils.deepAccess(bid, 'mediaTypes.banner')
-}
-
-function isNativeRequest (bid) {
-  return bid.mediaType === 'native' || !!utils.deepAccess(bid, 'mediaTypes.native')
 }
 
 registerBidder(spec)

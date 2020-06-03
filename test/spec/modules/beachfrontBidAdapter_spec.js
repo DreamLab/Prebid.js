@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { spec, VIDEO_ENDPOINT, BANNER_ENDPOINT, OUTSTREAM_SRC, DEFAULT_MIMES } from 'modules/beachfrontBidAdapter.js';
-import { parseUrl } from 'src/utils.js';
+import { spec, VIDEO_ENDPOINT, BANNER_ENDPOINT, OUTSTREAM_SRC, DEFAULT_MIMES } from 'modules/beachfrontBidAdapter';
+import { parse as parseUrl } from 'src/url';
 
 describe('BeachfrontAdapter', function () {
   let bidRequests;
@@ -226,22 +226,11 @@ describe('BeachfrontAdapter', function () {
         const mimes = ['video/webm'];
         const playbackmethod = 2;
         const maxduration = 30;
-        const placement = 4;
         bidRequest.mediaTypes = { video: {} };
-        bidRequest.params.video = { mimes, playbackmethod, maxduration, placement };
+        bidRequest.params.video = { mimes, playbackmethod, maxduration };
         const requests = spec.buildRequests([ bidRequest ]);
         const data = requests[0].data;
-        expect(data.imp[0].video).to.deep.contain({ mimes, playbackmethod, maxduration, placement });
-      });
-
-      it('must add US privacy data to the request', function () {
-        const bidRequest = bidRequests[0];
-        bidRequest.mediaTypes = { video: {} };
-        const uspConsent = '2112YYZ';
-        const bidderRequest = { uspConsent };
-        const requests = spec.buildRequests([ bidRequest ], bidderRequest);
-        const data = requests[0].data;
-        expect(data.regs.ext.us_privacy).to.equal(uspConsent);
+        expect(data.imp[0].video).to.deep.contain({ mimes, playbackmethod, maxduration });
       });
 
       it('must add GDPR consent data to the request', function () {
@@ -382,16 +371,6 @@ describe('BeachfrontAdapter', function () {
         expect(data.slots[0].sizes).to.deep.contain({ w: width, h: height });
       });
 
-      it('must add US privacy data to the request', function () {
-        const bidRequest = bidRequests[0];
-        bidRequest.mediaTypes = { banner: {} };
-        const uspConsent = '2112YYZ';
-        const bidderRequest = { uspConsent };
-        const requests = spec.buildRequests([ bidRequest ], bidderRequest);
-        const data = requests[0].data;
-        expect(data.usPrivacy).to.equal(uspConsent);
-      });
-
       it('must add GDPR consent data to the request', function () {
         const bidRequest = bidRequests[0];
         bidRequest.mediaTypes = { banner: {} };
@@ -516,16 +495,15 @@ describe('BeachfrontAdapter', function () {
         const serverResponse = {
           bidPrice: 5.00,
           url: 'http://reachms.bfmio.com/getmu?aid=bid:19c4a196-fb21-4c81-9a1a-ecc5437a39da',
-          crid: '123abc'
+          cmpId: '123abc'
         };
         const bidResponse = spec.interpretResponse({ body: serverResponse }, { bidRequest });
         expect(bidResponse).to.deep.equal({
           requestId: bidRequest.bidId,
           bidderCode: spec.code,
           cpm: serverResponse.bidPrice,
-          creativeId: serverResponse.crid,
+          creativeId: serverResponse.cmpId,
           vastUrl: serverResponse.url,
-          vastXml: undefined,
           width: width,
           height: height,
           renderer: null,
@@ -533,48 +511,6 @@ describe('BeachfrontAdapter', function () {
           currency: 'USD',
           netRevenue: true,
           ttl: 300
-        });
-      });
-
-      it('should default to the legacy "cmpId" value for the creative ID', () => {
-        const width = 640;
-        const height = 480;
-        const bidRequest = bidRequests[0];
-        bidRequest.mediaTypes = {
-          video: {
-            playerSize: [ width, height ]
-          }
-        };
-        const serverResponse = {
-          bidPrice: 5.00,
-          url: 'http://reachms.bfmio.com/getmu?aid=bid:19c4a196-fb21-4c81-9a1a-ecc5437a39da',
-          cmpId: '123abc'
-        };
-        const bidResponse = spec.interpretResponse({ body: serverResponse }, { bidRequest });
-        expect(bidResponse).to.deep.contain({
-          creativeId: serverResponse.cmpId
-        });
-      });
-
-      it('should return vast xml if found on the bid response', () => {
-        const width = 640;
-        const height = 480;
-        const bidRequest = bidRequests[0];
-        bidRequest.mediaTypes = {
-          video: {
-            playerSize: [ width, height ]
-          }
-        };
-        const serverResponse = {
-          bidPrice: 5.00,
-          url: 'http://reachms.bfmio.com/getmu?aid=bid:19c4a196-fb21-4c81-9a1a-ecc5437a39da',
-          vast: '<VAST version="3.0"></VAST>',
-          crid: '123abc'
-        };
-        const bidResponse = spec.interpretResponse({ body: serverResponse }, { bidRequest });
-        expect(bidResponse).to.deep.contain({
-          vastUrl: serverResponse.url,
-          vastXml: serverResponse.vast
         });
       });
 
@@ -588,7 +524,7 @@ describe('BeachfrontAdapter', function () {
         const serverResponse = {
           bidPrice: 5.00,
           url: 'http://reachms.bfmio.com/getmu?aid=bid:19c4a196-fb21-4c81-9a1a-ecc5437a39da',
-          crid: '123abc'
+          cmpId: '123abc'
         };
         const bidResponse = spec.interpretResponse({ body: serverResponse }, { bidRequest });
         expect(bidResponse.renderer).to.deep.contain({
@@ -610,7 +546,7 @@ describe('BeachfrontAdapter', function () {
         const serverResponse = {
           bidPrice: 5.00,
           url: 'http://reachms.bfmio.com/getmu?aid=bid:19c4a196-fb21-4c81-9a1a-ecc5437a39da',
-          crid: '123abc'
+          cmpId: '123abc'
         };
         const bidResponse = spec.interpretResponse({ body: serverResponse }, { bidRequest });
         window.Beachfront = { Player: sinon.spy() };
@@ -644,7 +580,7 @@ describe('BeachfrontAdapter', function () {
         const serverResponse = {
           bidPrice: 5.00,
           url: 'http://reachms.bfmio.com/getmu?aid=bid:19c4a196-fb21-4c81-9a1a-ecc5437a39da',
-          crid: '123abc'
+          cmpId: '123abc'
         };
         const bidResponse = spec.interpretResponse({ body: serverResponse }, { bidRequest });
         window.Beachfront = { Player: sinon.spy() };
@@ -725,7 +661,7 @@ describe('BeachfrontAdapter', function () {
         bidResponse = {
           bidPrice: 5.00,
           url: 'http://reachms.bfmio.com/getmu?aid=bid:19c4a196-fb21-4c81-9a1a-ecc5437a39da',
-          crid: '123abc'
+          cmpId: '123abc'
         };
       });
 

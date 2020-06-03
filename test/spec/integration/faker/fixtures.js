@@ -1,5 +1,5 @@
 import faker from 'faker';
-import { makeSlot } from './googletag.js';
+import { makeSlot } from './googletag';
 
 export function makeAdSlot(overrides = {}) {
   return Object.assign(makeSlot(

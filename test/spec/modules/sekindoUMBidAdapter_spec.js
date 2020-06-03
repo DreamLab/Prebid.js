@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { spec } from 'modules/sekindoUMBidAdapter.js';
-import { newBidder } from 'src/adapters/bidderFactory.js';
+import { spec } from 'modules/sekindoUMBidAdapter';
+import { newBidder } from 'src/adapters/bidderFactory';
 
 describe('sekindoUMAdapter', function () {
   const adapter = newBidder(spec);
@@ -143,7 +143,7 @@ describe('sekindoUMAdapter', function () {
         'headers': function(header) {
           return 'dummy header';
         },
-        'body': {'id': '30b31c1838de1e', 'bidderCode': 'sekindoUM', 'cpm': 2.1951, 'width': 300, 'height': 250, 'vastUrl': 'https://vastUrl', 'ttl': 36000, 'creativeId': '323774', 'netRevenue': true, 'currency': 'USD'}
+        'body': {'id': '30b31c1838de1e', 'bidderCode': 'sekindoUM', 'cpm': 2.1951, 'width': 300, 'height': 250, 'vastUrl': '//vastUrl', 'ttl': 36000, 'creativeId': '323774', 'netRevenue': true, 'currency': 'USD'}
       };
       bidRequests.mediaType = 'video';
       bidRequests.params = videoParams;
@@ -158,7 +158,7 @@ describe('sekindoUMAdapter', function () {
           'currency': 'USD',
           'netRevenue': true,
           'ttl': 36000,
-          'vastUrl': 'https://vastUrl'
+          'vastUrl': '//vastUrl'
         }
       ];
       let result = spec.interpretResponse(response, bidRequests);

@@ -1,6 +1,6 @@
-import { registerBidder } from '../src/adapters/bidderFactory.js';
-import { BANNER } from '../src/mediaTypes.js';
-import { config } from '../src/config.js';
+import { registerBidder } from '../src/adapters/bidderFactory';
+import { BANNER } from '../src/mediaTypes';
+import { config } from '../src/config';
 
 export const ADAPTER_VERSION = '1.0.0';
 const SUPPORTED_AD_TYPES = [BANNER];

@@ -1,9 +1,10 @@
-import * as utils from '../src/utils.js';
-import { config } from '../src/config.js';
-import { registerBidder } from '../src/adapters/bidderFactory.js';
+import * as utils from '../src/utils';
+import * as url from '../src/url';
+import { config } from '../src/config';
+import { registerBidder } from '../src/adapters/bidderFactory';
 
 const BIDDER_CODE = 'mytarget';
-const BIDDER_URL = 'https://ad.mail.ru/hbid_prebid/';
+const BIDDER_URL = '//ad.mail.ru/hbid_prebid/';
 const DEFAULT_CURRENCY = 'RUB';
 const DEFAULT_TTL = 180;
 
@@ -28,16 +29,10 @@ function getSiteName(referrer) {
   let sitename = config.getConfig('mytarget.sitename');
 
   if (!sitename) {
-    sitename = utils.parseUrl(referrer).hostname;
+    sitename = url.parse(referrer).hostname;
   }
 
   return sitename;
-}
-
-function getCurrency() {
-  let currency = config.getConfig('currency.adServerCurrency');
-
-  return (currency === 'USD') ? currency : DEFAULT_CURRENCY;
 }
 
 function generateRandomId() {
@@ -65,7 +60,7 @@ export const spec = {
         page: referrer
       },
       settings: {
-        currency: getCurrency(),
+        currency: DEFAULT_CURRENCY,
         windowSize: {
           width: window.screen.width,
           height: window.screen.height

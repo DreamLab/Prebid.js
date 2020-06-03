@@ -1,6 +1,5 @@
 import { expect } from 'chai';
-import { config } from 'src/config.js';
-import { spec } from 'modules/mytargetBidAdapter.js';
+import { spec } from 'modules/mytargetBidAdapter';
 
 describe('MyTarget Adapter', function() {
   describe('isBidRequestValid', function () {
@@ -55,7 +54,7 @@ describe('MyTarget Adapter', function() {
 
     it('should build single POST request for multiple bids', function() {
       expect(bidRequest.method).to.equal('POST');
-      expect(bidRequest.url).to.equal('https://ad.mail.ru/hbid_prebid/');
+      expect(bidRequest.url).to.equal('//ad.mail.ru/hbid_prebid/');
       expect(bidRequest.data).to.be.an('object');
       expect(bidRequest.data.places).to.be.an('array');
       expect(bidRequest.data.places).to.have.lengthOf(2);
@@ -114,35 +113,6 @@ describe('MyTarget Adapter', function() {
       expect(settings.windowSize).to.be.an('object');
       expect(settings.windowSize.width).to.equal(window.screen.width);
       expect(settings.windowSize.height).to.equal(window.screen.height);
-    });
-
-    it('should pass currency from currency.adServerCurrency', function() {
-      const configStub = sinon.stub(config, 'getConfig').callsFake(
-        key => key === 'currency.adServerCurrency' ? 'USD' : '');
-
-      let bidRequest = spec.buildRequests(bidRequests, bidderRequest);
-      let settings = bidRequest.data.settings;
-
-      expect(settings).to.be.an('object');
-      expect(settings.currency).to.equal('USD');
-      expect(settings.windowSize).to.be.an('object');
-      expect(settings.windowSize.width).to.equal(window.screen.width);
-      expect(settings.windowSize.height).to.equal(window.screen.height);
-
-      configStub.restore();
-    });
-
-    it('should ignore currency other than "RUB" or "USD"', function() {
-      const configStub = sinon.stub(config, 'getConfig').callsFake(
-        key => key === 'currency.adServerCurrency' ? 'EUR' : '');
-
-      let bidRequest = spec.buildRequests(bidRequests, bidderRequest);
-      let settings = bidRequest.data.settings;
-
-      expect(settings).to.be.an('object');
-      expect(settings.currency).to.equal('RUB');
-
-      configStub.restore();
     });
   });
 

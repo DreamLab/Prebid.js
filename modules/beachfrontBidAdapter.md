@@ -109,7 +109,6 @@ Module that connects to Beachfront's demand sources
                         },
                         player: {
                             progressColor: '#50A8FA',
-                            adPosterColor: '#FFF',
                             expandInView: false,
                             collapseOnComplete: true
                         }

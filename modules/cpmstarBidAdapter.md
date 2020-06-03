@@ -4,9 +4,6 @@
 Module Name: Cpmstar Bidder Adapter
 Module Type: Bidder Adapter
 Maintainer: josh@cpmstar.com
-gdpr_supported: true
-usp_supported: true
-coppa_supported: true
 ```
 
 # Description

@@ -1,14 +1,13 @@
-import adapter from '../src/AnalyticsAdapter.js';
+import adapter from '../src/AnalyticsAdapter';
 import CONSTANTS from '../src/constants.json';
-import adapterManager from '../src/adapterManager.js';
-import * as utils from '../src/utils.js';
-import {ajax} from '../src/ajax.js';
-import { getStorageManager } from '../src/storageManager.js';
+import adapterManager from '../src/adapterManager';
+import {parse} from '../src/url';
+import * as utils from '../src/utils';
+import {ajax} from '../src/ajax';
 
-const ANALYTICS_VERSION = '1.0.1';
+const ANALYTICS_VERSION = '1.0.0';
 const DEFAULT_QUEUE_TIMEOUT = 4000;
 const DEFAULT_HOST = 'tag.adkernel.com';
-const storageObj = getStorageManager();
 
 const ADK_HB_EVENTS = {
   AUCTION_INIT: 'auctionInit',
@@ -20,12 +19,14 @@ const ADK_HB_EVENTS = {
 };
 
 function buildRequestTemplate(pubId) {
-  const {loc, ref} = getNavigationInfo();
+  const url = utils.getTopWindowUrl();
+  const ref = utils.getTopWindowReferrer();
+  const topLocation = utils.getTopWindowLocation();
 
   return {
     ver: ANALYTICS_VERSION,
-    domain: loc.hostname,
-    path: loc.pathname,
+    domain: topLocation.hostname,
+    path: topLocation.pathname,
     accId: pubId,
     env: {
       screen: {
@@ -34,13 +35,13 @@ function buildRequestTemplate(pubId) {
       },
       lang: navigator.language
     },
-    src: getUmtSource(loc.href, ref)
+    src: getUmtSource(url, ref)
   }
 }
 
 let analyticsAdapter = Object.assign(adapter({analyticsType: 'endpoint'}),
   {
-    track({eventType, args}) {
+    track({ eventType, args }) {
       if (!analyticsAdapter.context) {
         return;
       }
@@ -114,7 +115,7 @@ function sendAll() {
 }
 
 analyticsAdapter.ajaxCall = function ajaxCall(data) {
-  ajax(`https://${analyticsAdapter.context.host}/hb-analytics`, () => {
+  ajax(`//${analyticsAdapter.context.host}/hb-analytics`, () => {
   }, data);
 };
 
@@ -151,7 +152,7 @@ function trackBidTimeout(args) {
 }
 
 function createHbEvent(adapter, event, tagid = undefined, value = 0, time = 0) {
-  let ev = {event: event};
+  let ev = { event: event };
   if (adapter) {
     ev.adapter = adapter
   }
@@ -176,10 +177,10 @@ const ORGANIC = '(organic)';
 
 export let storage = {
   getItem: (name) => {
-    return storageObj.getDataFromLocalStorage(name);
+    return localStorage.getItem(name);
   },
   setItem: (name, value) => {
-    storageObj.setDataInLocalStorage(name, value);
+    localStorage.setItem(name, value);
   }
 };
 
@@ -210,7 +211,7 @@ export function getUmtSource(pageUrl, referrer) {
       if (se) {
         return asUtm(se, ORGANIC, ORGANIC);
       }
-      let parsedUrl = utils.parseUrl(pageUrl);
+      let parsedUrl = parse(pageUrl);
       let [refHost, refPath] = getReferrer(referrer);
       if (refHost && refHost !== parsedUrl.hostname) {
         return asUtm(refHost, REFERRAL, REFERRAL, '', refPath);
@@ -237,12 +238,12 @@ export function getUmtSource(pageUrl, referrer) {
   }
 
   function getReferrer(referrer) {
-    let ref = utils.parseUrl(referrer);
+    let ref = parse(referrer);
     return [ref.hostname, ref.pathname];
   }
 
   function getUTM(pageUrl) {
-    let urlParameters = utils.parseUrl(pageUrl).search;
+    let urlParameters = parse(pageUrl).search;
     if (!urlParameters['utm_campaign'] || !urlParameters['utm_source']) {
       return;
     }
@@ -296,7 +297,7 @@ export function getUmtSource(pageUrl, referrer) {
   function chooseActualUtm(prev, curr) {
     if (ord(prev) < ord(curr)) {
       return [true, curr];
-    } else if (ord(prev) > ord(curr)) {
+    } if (ord(prev) > ord(curr)) {
       return [false, prev];
     } else {
       if (prev.campaign === REFERRAL && prev.content !== curr.content) {
@@ -329,7 +330,7 @@ export function getUmtSource(pageUrl, referrer) {
 }
 
 /**
- * Expiring queue implementation. Fires callback on elapsed timeout since last update or creation.
+ * Expiring queue implementation. Fires callback on elapsed timeout since last last update or creation.
  * @param callback
  * @param ttl
  * @constructor
@@ -374,19 +375,4 @@ export function ExpiringQueue(callback, ttl) {
       }
     }, ttl);
   }
-}
-
-function getNavigationInfo() {
-  try {
-    return getLocationAndReferrer(self.top);
-  } catch (e) {
-    return getLocationAndReferrer(self);
-  }
-}
-
-function getLocationAndReferrer(win) {
-  return {
-    ref: win.document.referrer,
-    loc: win.location
-  };
 }

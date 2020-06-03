@@ -1,6 +1,7 @@
+import * as utils from 'src/utils';
 import { expect } from 'chai';
-import { spec } from 'modules/gammaBidAdapter.js';
-import { newBidder } from 'src/adapters/bidderFactory.js';
+import { spec } from 'modules/gammaBidAdapter';
+import { newBidder } from 'src/adapters/bidderFactory';
 
 describe('gammaBidAdapter', function() {
   const adapter = newBidder(spec);
@@ -21,26 +22,26 @@ describe('gammaBidAdapter', function() {
   };
   let bidArray = [bid];
 
-  describe('isBidRequestValid', () => {
-    it('should return true when required params found', () => {
+  describe('isBidRequestValid', function () {
+    it('should return true when required params found', function () {
       expect(spec.isBidRequestValid(bid)).to.equal(true);
     });
 
-    it('should return false when require params are not passed', () => {
+    it('should return false when require params are not passed', function () {
       let bid = Object.assign({}, bid);
       bid.params = {};
       expect(spec.isBidRequestValid(bid)).to.equal(false);
     });
 
-    it('should return false when params not passed correctly', () => {
+    it('should return false when params not passed correctly', function () {
       bid.params.siteId = '';
       bid.params.zoneId = '';
       expect(spec.isBidRequestValid(bid)).to.equal(false);
     });
   });
 
-  describe('buildRequests', () => {
-    it('should attempt to send bid requests to the endpoint via GET', () => {
+  describe('buildRequests', function () {
+    it('should attempt to send bid requests to the endpoint via GET', function () {
       const requests = spec.buildRequests(bidArray);
       requests.forEach(function(requestItem) {
         expect(requestItem.method).to.equal('GET');
@@ -49,10 +50,10 @@ describe('gammaBidAdapter', function() {
     });
   });
 
-  describe('interpretResponse', () => {
+  describe('interpretResponse', function () {
     let serverResponse;
 
-    beforeEach(() => {
+    beforeEach(function () {
       serverResponse = {
         body: {
           'id': '23beaa6af6cdde',
@@ -76,7 +77,7 @@ describe('gammaBidAdapter', function() {
       };
     })
 
-    it('should get the correct bid response', () => {
+    it('should get the correct bid response', function () {
       let expectedResponse = [{
         'requestId': '23beaa6af6cdde',
         'cpm': 0.45,
@@ -93,7 +94,7 @@ describe('gammaBidAdapter', function() {
       expect(Object.keys(result)).to.deep.equal(Object.keys(expectedResponse));
     });
 
-    it('handles empty bid response', () => {
+    it('handles empty bid response', function () {
       let response = {
         body: {}
       };

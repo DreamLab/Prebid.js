@@ -3,19 +3,18 @@
    access to a publisher page from creative payloads.
  */
 
-import events from './events.js';
-import { fireNativeTrackers, getAssetMessage } from './native.js';
-import { EVENTS } from './constants.json';
-import { logWarn, replaceAuctionPrice } from './utils.js';
-import { auctionManager } from './auctionManager.js';
-import find from 'core-js-pure/features/array/find.js';
-import { isRendererRequired, executeRenderer } from './Renderer.js';
-import includes from 'core-js-pure/features/array/includes.js';
+import events from './events';
+import { fireNativeTrackers, getAssetMessage } from './native';
+import { EVENTS } from './constants';
+import { isSlotMatchingAdUnitCode, logWarn, replaceAuctionPrice } from './utils';
+import { auctionManager } from './auctionManager';
+import find from 'core-js/library/fn/array/find';
+import { isRendererRequired, executeRenderer } from './Renderer';
 
 const BID_WON = EVENTS.BID_WON;
 
 export function listenMessagesFromCreative() {
-  window.addEventListener('message', receiveMessage, false);
+  addEventListener('message', receiveMessage, false);
 }
 
 function receiveMessage(ev) {
@@ -32,8 +31,8 @@ function receiveMessage(ev) {
       return bid.adId === data.adId;
     });
 
-    if (adObject && data.message === 'Prebid Request') {
-      _sendAdToCreative(adObject, ev);
+    if (data.message === 'Prebid Request') {
+      _sendAdToCreative(adObject, data.adServerDomain, ev.source);
 
       // save winning bids
       auctionManager.addWinningBid(adObject);
@@ -46,7 +45,7 @@ function receiveMessage(ev) {
     //   message: 'Prebid Native',
     //   adId: '%%PATTERN:hb_adid%%'
     // }), '*');
-    if (adObject && data.message === 'Prebid Native') {
+    if (data.message === 'Prebid Native') {
       if (data.action === 'assetRequest') {
         const message = getAssetMessage(data, adObject);
         ev.source.postMessage(JSON.stringify(message), ev.origin);
@@ -62,29 +61,28 @@ function receiveMessage(ev) {
   }
 }
 
-export function _sendAdToCreative(adObject, ev) {
+export function _sendAdToCreative(adObject, remoteDomain, source) {
   const { adId, ad, adUrl, width, height, renderer, cpm } = adObject;
   // rendering for outstream safeframe
   if (isRendererRequired(renderer)) {
     executeRenderer(renderer, adObject);
   } else if (adId) {
     resizeRemoteCreative(adObject);
-    ev.source.postMessage(JSON.stringify({
+    source.postMessage(JSON.stringify({
       message: 'Prebid Response',
       ad: replaceAuctionPrice(ad, cpm),
       adUrl: replaceAuctionPrice(adUrl, cpm),
       adId,
       width,
       height
-    }), ev.origin);
+    }), remoteDomain);
   }
 }
 
-function resizeRemoteCreative({ adId, adUnitCode, width, height }) {
+function resizeRemoteCreative({ adUnitCode, width, height }) {
   // resize both container div + iframe
-  ['div', 'iframe'].forEach(elmType => {
-    // not select element that gets removed after dfp render
-    let element = getElementByAdUnit(elmType + ':not([style*="display: none"])');
+  ['div:last-child', 'div:last-child iframe'].forEach(elmType => {
+    let element = getElementByAdUnit(elmType);
     if (element) {
       let elementStyle = element.style;
       elementStyle.width = width + 'px';
@@ -95,14 +93,14 @@ function resizeRemoteCreative({ adId, adUnitCode, width, height }) {
   });
 
   function getElementByAdUnit(elmType) {
-    let id = getElementIdBasedOnAdServer(adId, adUnitCode);
+    let id = getElementIdBasedOnAdServer(adUnitCode);
     let parentDivEle = document.getElementById(id);
     return parentDivEle && parentDivEle.querySelector(elmType);
   }
 
-  function getElementIdBasedOnAdServer(adId, adUnitCode) {
+  function getElementIdBasedOnAdServer(adUnitCode) {
     if (window.googletag) {
-      return getDfpElementId(adId)
+      return getDfpElementId(adUnitCode)
     } else if (window.apntag) {
       return getAstElementId(adUnitCode)
     } else {
@@ -110,12 +108,8 @@ function resizeRemoteCreative({ adId, adUnitCode, width, height }) {
     }
   }
 
-  function getDfpElementId(adId) {
-    return find(window.googletag.pubads().getSlots(), slot => {
-      return find(slot.getTargetingKeys(), key => {
-        return includes(slot.getTargeting(key), adId);
-      });
-    }).getSlotElementId();
+  function getDfpElementId(adUnitCode) {
+    return find(window.googletag.pubads().getSlots().filter(isSlotMatchingAdUnitCode(adUnitCode)), slot => slot).getSlotElementId()
   }
 
   function getAstElementId(adUnitCode) {

@@ -1,10 +1,10 @@
-import {registerBidder} from '../src/adapters/bidderFactory.js';
-import { BANNER, NATIVE, VIDEO } from '../src/mediaTypes.js';
-import * as utils from '../src/utils.js';
+import {registerBidder} from '../src/adapters/bidderFactory';
+import { BANNER, NATIVE, VIDEO } from '../src/mediaTypes';
+import * as utils from '../src/utils';
 
 const BIDDER_CODE = 'smartyads';
-const AD_URL = 'https://ssp-nj.webtradehub.com/?c=o&m=multi';
-const URL_SYNC = 'https://ssp-nj.webtradehub.com/?c=o&m=cookie';
+const URL = '//ssp-nj.webtradehub.com/?c=o&m=multi';
+const URL_SYNC = '//ssp-nj.webtradehub.com/?c=o&m=cookie';
 
 function isBidResponseValid(bid) {
   if (!bid.requestId || !bid.cpm || !bid.creativeId ||
@@ -17,7 +17,7 @@ function isBidResponseValid(bid) {
     case VIDEO:
       return Boolean(bid.vastUrl);
     case NATIVE:
-      return Boolean(bid.native && bid.native.title && bid.native.image && bid.native.impressionTrackers);
+      return Boolean(bid.title && bid.image && bid.impressionTrackers);
     default:
       return false;
   }
@@ -31,53 +31,37 @@ export const spec = {
     return Boolean(bid.bidId && bid.params && !isNaN(bid.params.placementId));
   },
 
-  buildRequests: (validBidRequests = [], bidderRequest) => {
+  buildRequests: (validBidRequests = []) => {
     let winTop = window;
-    let location;
     try {
-      location = new URL(bidderRequest.refererInfo.referer)
+      window.top.location.toString();
       winTop = window.top;
     } catch (e) {
-      location = winTop.location;
       utils.logMessage(e);
-    };
+    }
+    let location = utils.getTopWindowLocation();
     let placements = [];
     let request = {
       'deviceWidth': winTop.screen.width,
       'deviceHeight': winTop.screen.height,
       'language': (navigator && navigator.language) ? navigator.language : '',
-      'secure': 1,
+      'secure': location.protocol === 'https:' ? 1 : 0,
       'host': location.host,
       'page': location.pathname,
       'placements': placements
     };
-    request.language.indexOf('-') != -1 && (request.language = request.language.split('-')[0])
-    if (bidderRequest) {
-      if (bidderRequest.uspConsent) {
-        request.ccpa = bidderRequest.uspConsent;
-      }
-      if (bidderRequest.gdprConsent) {
-        request.gdpr = bidderRequest.gdprConsent
-      }
-    }
     const len = validBidRequests.length;
-
     for (let i = 0; i < len; i++) {
       let bid = validBidRequests[i];
-      let traff = bid.params.traffic || BANNER
       placements.push({
         placementId: bid.params.placementId,
         bidId: bid.bidId,
-        sizes: bid.mediaTypes && bid.mediaTypes[traff] && bid.mediaTypes[traff].sizes ? bid.mediaTypes[traff].sizes : [],
-        traffic: traff
+        traffic: bid.params.traffic || BANNER
       });
-      if (bid.schain) {
-        placements.schain = bid.schain;
-      }
     }
     return {
       method: 'POST',
-      url: AD_URL,
+      url: URL,
       data: request
     };
   },
@@ -88,6 +72,7 @@ export const spec = {
     for (let i = 0; i < serverResponse.length; i++) {
       let resItem = serverResponse[i];
       if (isBidResponseValid(resItem)) {
+        delete resItem.mediaType;
         response.push(resItem);
       }
     }

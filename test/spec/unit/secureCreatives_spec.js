@@ -1,8 +1,8 @@
 import {
   _sendAdToCreative
-} from '../../../src/secureCreatives.js';
+} from '../../../src/secureCreatives';
 import { expect } from 'chai';
-import * as utils from 'src/utils.js';
+import * as utils from 'src/utils';
 
 describe('secureCreatives', () => {
   describe('_sendAdToCreative', () => {
@@ -30,14 +30,14 @@ describe('secureCreatives', () => {
         cpm: '1.00',
         adUnitCode: 'some_dom_id'
       };
-      const event = {
-        source: { postMessage: sinon.stub() },
-        origin: 'origin.sf.com'
+      const remoteDomain = '*';
+      const source = {
+        postMessage: sinon.stub()
       };
 
-      _sendAdToCreative(mockAdObject, event);
-      expect(JSON.parse(event.source.postMessage.args[0][0]).ad).to.equal('<script src="http://prebid.org/creative/1.00"></script>');
-      expect(JSON.parse(event.source.postMessage.args[0][0]).adUrl).to.equal('http://creative.prebid.org/1.00');
+      _sendAdToCreative(mockAdObject, remoteDomain, source);
+      expect(JSON.parse(source.postMessage.args[0][0]).ad).to.equal('<script src="http://prebid.org/creative/1.00"></script>');
+      expect(JSON.parse(source.postMessage.args[0][0]).adUrl).to.equal('http://creative.prebid.org/1.00');
       window.googletag = oldVal;
       window.apntag = oldapntag;
     });

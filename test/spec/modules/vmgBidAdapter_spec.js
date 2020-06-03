@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { spec } from 'modules/vmgBidAdapter.js';
-import { newBidder } from 'src/adapters/bidderFactory.js';
+import { spec } from 'modules/vmgBidAdapter';
+import { newBidder } from 'src/adapters/bidderFactory';
 
 describe('VmgAdapter', function () {
   const adapter = newBidder(spec);

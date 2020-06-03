@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {spec} from 'modules/otmBidAdapter.js';
+import {spec} from 'modules/otmBidAdapter';
 
 describe('otmBidAdapterTests', function () {
   it('validate_pub_params', function () {

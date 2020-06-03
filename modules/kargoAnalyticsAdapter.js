@@ -1,5 +1,5 @@
-import adapter from '../src/AnalyticsAdapter.js';
-import adapterManager from '../src/adapterManager.js';
+import adapter from '../src/AnalyticsAdapter';
+import adapterManager from '../src/adapterManager';
 
 var kargoAdapter = adapter({
   analyticsType: 'endpoint',

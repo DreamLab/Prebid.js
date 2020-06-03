@@ -2,14 +2,14 @@
  * Adapter to send bids to Undertone
  */
 
-import { parseUrl } from '../src/utils.js';
-import { registerBidder } from '../src/adapters/bidderFactory.js';
+import * as urlUtils from '../src/url';
+import { registerBidder } from '../src/adapters/bidderFactory';
 
 const BIDDER_CODE = 'undertone';
-const URL = 'https://hb.undertone.com/hb';
-const FRAME_USER_SYNC = 'https://cdn.undertone.com/js/usersync.html';
-const PIXEL_USER_SYNC_1 = 'https://usr.undertone.com/userPixel/syncOne?id=1&of=2';
-const PIXEL_USER_SYNC_2 = 'https://usr.undertone.com/userPixel/syncOne?id=2&of=2';
+const URL = '//hb.undertone.com/hb';
+const FRAME_USER_SYNC = '//cdn.undertone.com/js/usersync.html';
+const PIXEL_USER_SYNC_1 = '//usr.undertone.com/userPixel/syncOne?id=1&of=2';
+const PIXEL_USER_SYNC_2 = '//usr.undertone.com/userPixel/syncOne?id=2&of=2';
 
 function getCanonicalUrl() {
   try {
@@ -41,36 +41,6 @@ function extractDomainFromHost(pageHost) {
   return domain;
 }
 
-function getGdprQueryParams(gdprConsent) {
-  if (!gdprConsent) {
-    return null;
-  }
-
-  let gdpr = gdprConsent.gdprApplies ? '1' : '0';
-  let gdprstr = gdprConsent.consentString ? gdprConsent.consentString : '';
-  return `gdpr=${gdpr}&gdprstr=${gdprstr}`;
-}
-
-function getBannerCoords(id) {
-  let element = document.getElementById(id);
-  let left = -1;
-  let top = -1;
-  if (element) {
-    left = element.offsetLeft;
-    top = element.offsetTop;
-
-    let parent = element.offsetParent;
-    if (parent) {
-      left += parent.offsetLeft;
-      top += parent.offsetTop;
-    }
-
-    return [left, top];
-  } else {
-    return null;
-  }
-}
-
 export const spec = {
   code: BIDDER_CODE,
   isBidRequestValid: function(bid) {
@@ -80,38 +50,20 @@ export const spec = {
     }
   },
   buildRequests: function(validBidRequests, bidderRequest) {
-    const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-    const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-    const pageSizeArray = vw == 0 || vh == 0 ? null : [vw, vh];
     const payload = {
-      'x-ut-hb-params': [],
-      'commons': {
-        'adapterVersion': '$prebid.version$',
-        'uids': validBidRequests[0].userId,
-        'pageSize': pageSizeArray
-      }
+      'x-ut-hb-params': []
     };
     const referer = bidderRequest.refererInfo.referer;
-    const hostname = parseUrl(referer).hostname;
+    const hostname = urlUtils.parse(referer).hostname;
     let domain = extractDomainFromHost(hostname);
     const pageUrl = getCanonicalUrl() || referer;
 
     const pubid = validBidRequests[0].params.publisherId;
-    let reqUrl = `${URL}?pid=${pubid}&domain=${domain}`;
-
-    let gdprParams = getGdprQueryParams(bidderRequest.gdprConsent);
-    if (gdprParams) {
-      reqUrl += `&${gdprParams}`;
-    }
-
-    if (bidderRequest.uspConsent) {
-      reqUrl += `&ccpa=${bidderRequest.uspConsent}`;
-    }
+    const REQ_URL = `${URL}?pid=${pubid}&domain=${domain}`;
 
     validBidRequests.map(bidReq => {
       const bid = {
         bidRequestId: bidReq.bidId,
-        coordinates: getBannerCoords(bidReq.adUnitCode),
         hbadaptor: 'prebid',
         url: pageUrl,
         domain: domain,
@@ -124,7 +76,7 @@ export const spec = {
     });
     return {
       method: 'POST',
-      url: reqUrl,
+      url: REQ_URL,
       withCredentials: true,
       data: JSON.stringify(payload)
     };
@@ -153,41 +105,25 @@ export const spec = {
     }
     return bids;
   },
-  getUserSyncs: function(syncOptions, serverResponses, gdprConsent, usPrivacy) {
+  getUserSyncs: function(syncOptions, serverResponses, gdprConsent) {
     const syncs = [];
-
-    let gdprParams = getGdprQueryParams(gdprConsent);
-    let iframePrivacyParams = '';
-    let pixelPrivacyParams = '';
-
-    if (gdprParams) {
-      iframePrivacyParams += `?${gdprParams}`;
-      pixelPrivacyParams += `&${gdprParams}`;
-    }
-
-    if (usPrivacy) {
-      if (iframePrivacyParams != '') {
-        iframePrivacyParams += '&'
-      } else {
-        iframePrivacyParams += '?'
-      }
-      iframePrivacyParams += `ccpa=${usPrivacy}`;
-      pixelPrivacyParams += `&ccpa=${usPrivacy}`;
+    if (gdprConsent && gdprConsent.gdprApplies === true) {
+      return syncs;
     }
 
     if (syncOptions.iframeEnabled) {
       syncs.push({
         type: 'iframe',
-        url: FRAME_USER_SYNC + iframePrivacyParams
+        url: FRAME_USER_SYNC
       });
     } else if (syncOptions.pixelEnabled) {
       syncs.push({
         type: 'image',
-        url: PIXEL_USER_SYNC_1 + pixelPrivacyParams
+        url: PIXEL_USER_SYNC_1
       },
       {
         type: 'image',
-        url: PIXEL_USER_SYNC_2 + pixelPrivacyParams
+        url: PIXEL_USER_SYNC_2
       });
     }
     return syncs;

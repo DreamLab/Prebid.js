@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { spec } from 'modules/nextMillenniumBidAdapter.js';
+import { spec } from 'modules/nextMillenniumBidAdapter';
 
 describe('nextMillenniumBidAdapterTests', function() {
   let bidRequestData = {

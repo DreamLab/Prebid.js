@@ -14,11 +14,7 @@ Module that connects to Colossus SSP demand sources
 ```
     var adUnits = [{
                 code: 'placementid_0',
-                mediaTypes: {
-                    banner: {
-                        sizes: [[300, 250], [300,600]]
-                    }
-                },
+                sizes: [[300, 250]],
                 bids: [{
                         bidder: 'colossusssp',
                         params: {

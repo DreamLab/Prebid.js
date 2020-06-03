@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { spec } from 'modules/taphypeBidAdapter.js';
+import { spec } from 'modules/taphypeBidAdapter';
 
 describe('taphypeBidAdapterTests', function () {
   it('validate_pub_params', function () {

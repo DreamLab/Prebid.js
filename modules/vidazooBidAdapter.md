@@ -4,7 +4,7 @@
 
 **Module Type:** Bidder Adapter
 
-**Maintainer:** dev@vidazoo.com
+**Maintainer:** server-dev@getintent.com
 
 # Description
 

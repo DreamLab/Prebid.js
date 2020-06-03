@@ -1,5 +1,5 @@
-import { formatQS } from './utils.js';
-import { targeting } from './targeting.js';
+import { formatQS } from './url';
+import { targeting } from './targeting';
 
 // Adserver parent class
 const AdServer = function(attr) {

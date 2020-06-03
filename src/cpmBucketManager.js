@@ -1,49 +1,58 @@
-import find from 'core-js-pure/features/array/find.js';
-const utils = require('./utils.js');
+import find from 'core-js/library/fn/array/find';
+const utils = require('./utils');
 
 const _defaultPrecision = 2;
 const _lgPriceConfig = {
   'buckets': [{
+    'min': 0,
     'max': 5,
     'increment': 0.5
   }]
 };
 const _mgPriceConfig = {
   'buckets': [{
+    'min': 0,
     'max': 20,
     'increment': 0.1
   }]
 };
 const _hgPriceConfig = {
   'buckets': [{
+    'min': 0,
     'max': 20,
     'increment': 0.01
   }]
 };
 const _densePriceConfig = {
   'buckets': [{
+    'min': 0,
     'max': 3,
     'increment': 0.01
   },
   {
+    'min': 3,
     'max': 8,
     'increment': 0.05
   },
   {
+    'min': 8,
     'max': 20,
     'increment': 0.5
   }]
 };
 const _autoPriceConfig = {
   'buckets': [{
+    'min': 0,
     'max': 5,
     'increment': 0.05
   },
   {
+    'min': 5,
     'max': 10,
     'increment': 0.1
   },
   {
+    'min': 10,
     'max': 20,
     'increment': 0.5
   }]
@@ -78,8 +87,6 @@ function getCpmStringValue(cpm, config, granularityMultiplier) {
   }, {
     'max': 0,
   });
-
-  let bucketFloor = 0;
   let bucket = find(config.buckets, bucket => {
     if (cpm > cap.max * granularityMultiplier) {
       // cpm exceeds cap, just return the cap.
@@ -88,11 +95,8 @@ function getCpmStringValue(cpm, config, granularityMultiplier) {
         precision = _defaultPrecision;
       }
       cpmStr = (bucket.max * granularityMultiplier).toFixed(precision);
-    } else if (cpm <= bucket.max * granularityMultiplier && cpm >= bucketFloor * granularityMultiplier) {
-      bucket.min = bucketFloor;
+    } else if (cpm <= bucket.max * granularityMultiplier && cpm >= bucket.min * granularityMultiplier) {
       return bucket;
-    } else {
-      bucketFloor = bucket.max;
     }
   });
   if (bucket) {
@@ -107,7 +111,7 @@ function isValidPriceConfig(config) {
   }
   let isValid = true;
   config.buckets.forEach(bucket => {
-    if (!bucket.max || !bucket.increment) {
+    if (typeof bucket.min === 'undefined' || !bucket.max || !bucket.increment) {
       isValid = false;
     }
   });

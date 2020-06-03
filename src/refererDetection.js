@@ -8,7 +8,7 @@
  * Canonical URL which refers to an HTML link element, with the attribute of rel="canonical", found in the <head> element of your webpage
  */
 
-import { logWarn } from './utils.js';
+import { logWarn } from './utils';
 
 export function detectReferer(win) {
   /**

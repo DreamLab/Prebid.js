@@ -19,12 +19,10 @@ For more information about [LKQD Ad Serving and Management](http://www.lkqd.com/
 var videoAdUnit = [
 {
     code: 'video1',
-    mediaTypes: {
-        video: {
-            context: "instream",
-            playerSize: [640, 480]
-        }
-    },
+    sizes: [
+        [300, 250],
+        [640, 480]
+    ],
     bids: [{
         bidder: 'lkqd',
         params: {

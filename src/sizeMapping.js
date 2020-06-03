@@ -1,6 +1,6 @@
-import { config } from './config.js';
-import {logWarn, isPlainObject, deepAccess, deepClone, getWindowTop} from './utils.js';
-import includes from 'core-js-pure/features/array/includes.js';
+import { config } from './config';
+import {logWarn, isPlainObject, deepAccess, deepClone, getWindowTop} from './utils';
+import includes from 'core-js/library/fn/array/includes';
 
 let sizeConfig = [];
 
@@ -125,18 +125,12 @@ function evaluateSizeConfig(configs) {
     ) {
       let ruleMatch = false;
 
-      // TODO: (Prebid - 4.0) Remove empty mediaQuery string check. Disallow empty mediaQuery in sizeConfig.
-      // Refer: https://github.com/prebid/Prebid.js/pull/4691, https://github.com/prebid/Prebid.js/issues/4810 for more details.
-      if (config.mediaQuery === '') {
-        ruleMatch = true;
-      } else {
-        try {
-          ruleMatch = getWindowTop().matchMedia(config.mediaQuery).matches;
-        } catch (e) {
-          logWarn('Unfriendly iFrame blocks sizeConfig from being correctly evaluated');
+      try {
+        ruleMatch = getWindowTop().matchMedia(config.mediaQuery).matches;
+      } catch (e) {
+        logWarn('Unfriendly iFrame blocks sizeConfig from being correctly evaluated');
 
-          ruleMatch = matchMedia(config.mediaQuery).matches;
-        }
+        ruleMatch = matchMedia(config.mediaQuery).matches;
       }
 
       if (ruleMatch) {

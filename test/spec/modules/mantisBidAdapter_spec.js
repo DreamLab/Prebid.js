@@ -1,6 +1,6 @@
 import {expect} from 'chai';
-import {spec} from 'modules/mantisBidAdapter.js';
-import {newBidder} from 'src/adapters/bidderFactory.js';
+import {spec} from 'modules/mantisBidAdapter';
+import {newBidder} from 'src/adapters/bidderFactory';
 
 describe('MantisAdapter', function () {
   const adapter = newBidder(spec);
@@ -48,10 +48,10 @@ describe('MantisAdapter', function () {
     ];
 
     it('domain override', function () {
-      window.mantis_domain = 'https://foo';
+      window.mantis_domain = 'http://foo';
       const request = spec.buildRequests(bidRequests);
 
-      expect(request.url).to.include('https://foo');
+      expect(request.url).to.include('http://foo');
 
       delete window.mantis_domain;
     });

@@ -1,15 +1,18 @@
-import * as utils from '../src/utils.js';
+import * as utils from '../src/utils';
 import {
   BANNER,
   NATIVE,
   VIDEO
-} from '../src/mediaTypes.js';
+} from '../src/mediaTypes';
 import {
   registerBidder
-} from '../src/adapters/bidderFactory.js';
+} from '../src/adapters/bidderFactory';
+import {
+  parse as parseUrl
+} from '../src/url';
 
 const BIDDER_CODE = 'theadx';
-const ENDPOINT_URL = 'https://ssp.theadx.com/request';
+const ENDPOINT_URL = '//ssp.theadx.com/request';
 
 const NATIVEASSETNAMES = {
   0: 'title',
@@ -314,7 +317,7 @@ export const spec = {
 }
 
 let buildSiteComponent = (bidRequest, bidderRequest) => {
-  let loc = utils.parseUrl(bidderRequest.refererInfo.referer, {
+  let loc = parseUrl(bidderRequest.refererInfo.referer, {
     decodeSearchAsString: true
   });
 

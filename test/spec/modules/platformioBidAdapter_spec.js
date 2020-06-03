@@ -1,21 +1,18 @@
 import {expect} from 'chai';
 import {spec} from 'modules/platformioBidAdapter';
+import {getTopWindowLocation} from 'src/utils';
 import {newBidder} from 'src/adapters/bidderFactory';
 
 describe('Platform.io Adapter Tests', function () {
   const slotConfigs = [{
     placementCode: '/DfpAccount1/slot1',
-    mediaTypes: {
-      banner: {
-        sizes: [[300, 250]]
-      }
-    },
     bidId: 'bid12345',
     mediaType: 'banner',
     params: {
       pubId: '29521',
       siteId: '26047',
       placementId: '123',
+      size: '300x250',
       bidFloor: '0.001',
       ifa: 'IFA',
       latitude: '40.712775',
@@ -23,17 +20,13 @@ describe('Platform.io Adapter Tests', function () {
     }
   }, {
     placementCode: '/DfpAccount2/slot2',
-    mediaTypes: {
-      banner: {
-        sizes: [[728, 90]]
-      }
-    },
     bidId: 'bid23456',
     mediaType: 'banner',
     params: {
       pubId: '29521',
       siteId: '26047',
       placementId: '1234',
+      size: '728x90',
       bidFloor: '0.000001',
     }
   }];
@@ -56,11 +49,6 @@ describe('Platform.io Adapter Tests', function () {
   }];
   const videoSlotConfig = [{
     placementCode: '/DfpAccount1/slot4',
-    mediaTypes: {
-      video: {
-        playerSize: [[640, 480]]
-      }
-    },
     bidId: 'bid12345678',
     mediaType: 'video',
     video: {
@@ -70,6 +58,7 @@ describe('Platform.io Adapter Tests', function () {
       pubId: '29521',
       placementId: '1234567',
       siteId: '26047',
+      size: '640x480'
     }
   }];
   const appSlotConfig = [{
@@ -82,7 +71,7 @@ describe('Platform.io Adapter Tests', function () {
         id: '1111',
         name: 'app name',
         bundle: 'io.platform.apps',
-        storeUrl: 'https://platform.io/apps',
+        storeUrl: 'http://platform.io/apps',
         domain: 'platform.io'
       }
     }
@@ -90,7 +79,7 @@ describe('Platform.io Adapter Tests', function () {
 
   it('Verify build request', function () {
     const request = spec.buildRequests(slotConfigs);
-    expect(request.url).to.equal('https://piohbdisp.hb.adx1.com/');
+    expect(request.url).to.equal('//piohbdisp.hb.adx1.com/');
     expect(request.method).to.equal('POST');
     const ortbRequest = JSON.parse(request.data);
     // site object
@@ -98,7 +87,7 @@ describe('Platform.io Adapter Tests', function () {
     expect(ortbRequest.site.publisher).to.not.equal(null);
     expect(ortbRequest.site.publisher.id).to.equal('29521');
     expect(ortbRequest.site.ref).to.equal(window.top.document.referrer);
-    expect(ortbRequest.site.page).to.equal(window.location.href);
+    expect(ortbRequest.site.page).to.equal(getTopWindowLocation().href);
     expect(ortbRequest.imp).to.have.lengthOf(2);
     // device object
     expect(ortbRequest.device).to.not.equal(null);
@@ -128,9 +117,7 @@ describe('Platform.io Adapter Tests', function () {
         bid: [{
           impid: ortbRequest.imp[0].id,
           price: 1.25,
-          adm: 'This is an Ad',
-          w: 300,
-          h: 250
+          adm: 'This is an Ad'
         }]
       }],
       cur: 'USD'
@@ -158,7 +145,7 @@ describe('Platform.io Adapter Tests', function () {
 
   it('Verify Native request', function () {
     const request = spec.buildRequests(nativeSlotConfig);
-    expect(request.url).to.equal('https://piohbdisp.hb.adx1.com/');
+    expect(request.url).to.equal('//piohbdisp.hb.adx1.com/');
     expect(request.method).to.equal('POST');
     const ortbRequest = JSON.parse(request.data);
     // native impression
@@ -196,7 +183,7 @@ describe('Platform.io Adapter Tests', function () {
 
   it('Verify Native response', function () {
     const request = spec.buildRequests(nativeSlotConfig);
-    expect(request.url).to.equal('https://piohbdisp.hb.adx1.com/');
+    expect(request.url).to.equal('//piohbdisp.hb.adx1.com/');
     expect(request.method).to.equal('POST');
     const ortbRequest = JSON.parse(request.data);
     const nativeResponse = {
@@ -208,7 +195,7 @@ describe('Platform.io Adapter Tests', function () {
           { id: 4, img: { url: 'https://adx1public.s3.amazonaws.com/creatives_icon.png', w: 100, h: 100 } },
           { id: 5, img: { url: 'https://adx1public.s3.amazonaws.com/creatives_image.png', w: 300, h: 300 } }
         ],
-        link: { url: 'https://brand.com/' }
+        link: { url: 'http://brand.com/' }
       }
     };
     const ortbResponse = {
@@ -216,7 +203,7 @@ describe('Platform.io Adapter Tests', function () {
         bid: [{
           impid: ortbRequest.imp[0].id,
           price: 1.25,
-          nurl: 'https://rtb.adx1.com/log',
+          nurl: 'http://rtb.adx1.com/log',
           adm: JSON.stringify(nativeResponse)
         }]
       }],
@@ -239,21 +226,21 @@ describe('Platform.io Adapter Tests', function () {
     expect(nativeBid.image.height).to.equal(300);
     expect(nativeBid.icon.width).to.equal(100);
     expect(nativeBid.icon.height).to.equal(100);
-    expect(nativeBid.clickUrl).to.equal(encodeURIComponent('https://brand.com/'));
+    expect(nativeBid.clickUrl).to.equal(encodeURIComponent('http://brand.com/'));
     expect(nativeBid.impressionTrackers).to.have.lengthOf(1);
-    expect(nativeBid.impressionTrackers[0]).to.equal('https://rtb.adx1.com/log');
+    expect(nativeBid.impressionTrackers[0]).to.equal('http://rtb.adx1.com/log');
   });
 
   it('Verify Video request', function () {
     const request = spec.buildRequests(videoSlotConfig);
-    expect(request.url).to.equal('https://piohbdisp.hb.adx1.com/');
+    expect(request.url).to.equal('//piohbdisp.hb.adx1.com/');
     expect(request.method).to.equal('POST');
     const videoRequest = JSON.parse(request.data);
     // site object
     expect(videoRequest.site).to.not.equal(null);
     expect(videoRequest.site.publisher.id).to.equal('29521');
     expect(videoRequest.site.ref).to.equal(window.top.document.referrer);
-    expect(videoRequest.site.page).to.equal(window.location.href);
+    expect(videoRequest.site.page).to.equal(getTopWindowLocation().href);
     // device object
     expect(videoRequest.device).to.not.equal(null);
     expect(videoRequest.device.ua).to.equal(navigator.userAgent);
@@ -274,7 +261,7 @@ describe('Platform.io Adapter Tests', function () {
         bid: [{
           impid: videoRequest.imp[0].id,
           price: 1.90,
-          adm: 'https://vid.example.com/9876',
+          adm: 'http://vid.example.com/9876',
           crid: '510511_754567308'
         }]
       }],
@@ -285,7 +272,7 @@ describe('Platform.io Adapter Tests', function () {
     // verify first bid
     const bid = bids[0];
     expect(bid.cpm).to.equal(1.90);
-    expect(bid.vastUrl).to.equal('https://vid.example.com/9876');
+    expect(bid.vastUrl).to.equal('http://vid.example.com/9876');
     expect(bid.crid).to.equal('510511_754567308');
     expect(bid.width).to.equal(640);
     expect(bid.height).to.equal(480);
@@ -323,7 +310,7 @@ describe('Platform.io Adapter Tests', function () {
     expect(ortbRequest.app.id).to.equal('1111');
     expect(ortbRequest.app.name).to.equal('app name');
     expect(ortbRequest.app.bundle).to.equal('io.platform.apps');
-    expect(ortbRequest.app.storeurl).to.equal('https://platform.io/apps');
+    expect(ortbRequest.app.storeurl).to.equal('http://platform.io/apps');
     expect(ortbRequest.app.domain).to.equal('platform.io');
   });
 
@@ -335,7 +322,7 @@ describe('Platform.io Adapter Tests', function () {
       }
     };
     const request = spec.buildRequests(slotConfigs, bidderRequest);
-    expect(request.url).to.equal('https://piohbdisp.hb.adx1.com/');
+    expect(request.url).to.equal('//piohbdisp.hb.adx1.com/');
     expect(request.method).to.equal('POST');
     const ortbRequest = JSON.parse(request.data);
     expect(ortbRequest.user).to.not.equal(null);

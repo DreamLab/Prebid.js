@@ -1,6 +1,6 @@
-import * as utils from '../src/utils.js';
-import { BANNER, VIDEO } from '../src/mediaTypes.js';
-import { registerBidder } from '../src/adapters/bidderFactory.js';
+import * as utils from '../src/utils';
+import { registerBidder } from '../src/adapters/bidderFactory';
+// import { config } from '../src/config';
 
 const BIDDER_CODE = 'freewheel-ssp';
 
@@ -11,7 +11,11 @@ const PRIMETIME_URL = PROTOCOL + '://cdn.stickyadstv.com/prime-time/';
 const USER_SYNC_URL = PROTOCOL + '://ads.stickyadstv.com/auto-user-sync';
 
 function getProtocol() {
-  return 'https';
+  if (location.protocol && location.protocol.indexOf('https') === 0) {
+    return 'https';
+  } else {
+    return 'http';
+  }
 }
 
 function isValidUrl(str) {
@@ -32,20 +36,6 @@ function getBiggerSize(array) {
     }
   }
   return result;
-}
-
-function getBiggerSizeWithLimit(array, minSizeLimit, maxSizeLimit) {
-  var minSize = minSizeLimit || [0, 0];
-  var maxSize = maxSizeLimit || [Number.MAX_VALUE, Number.MAX_VALUE];
-  var candidates = [];
-
-  for (var i = 0; i < array.length; i++) {
-    if (array[i][0] * array[i][1] >= minSize[0] * minSize[1] && array[i][0] * array[i][1] <= maxSize[0] * maxSize[1]) {
-      candidates.push(array[i]);
-    }
-  }
-
-  return getBiggerSize(candidates);
 }
 
 /*
@@ -100,24 +90,6 @@ function getCreativeId(xmlNode) {
   });
 
   return creaId;
-}
-
-function getDealId(xmlNode) {
-  var dealId = '';
-  var impNodes = xmlNode.querySelectorAll('Impression'); // Nodelist.forEach is not supported in IE and Edge
-  // Workaround given here https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/10638731/
-
-  Array.prototype.forEach.call(impNodes, function (el) {
-    var queries = el.textContent.substring(el.textContent.indexOf('?') + 1).split('&');
-    Array.prototype.forEach.call(queries, function (item) {
-      var split = item.split('=');
-      if (split[0] == 'dealId') {
-        dealId = split[1];
-      }
-    });
-  });
-
-  return dealId;
 }
 
 /**
@@ -232,7 +204,7 @@ var getOutstreamScript = function(bid) {
 
 export const spec = {
   code: BIDDER_CODE,
-  supportedMediaTypes: [BANNER, VIDEO],
+  supportedMediaTypes: ['banner', 'video'],
   aliases: ['stickyadstv'], //  former name for freewheel-ssp
   /**
   * Determines whether or not the given bid request is valid.
@@ -253,82 +225,62 @@ export const spec = {
   buildRequests: function(bidRequests, bidderRequest) {
     // var currency = config.getConfig(currency);
 
-    let buildRequest = (currentBidRequest, bidderRequest) => {
-      var zone = currentBidRequest.params.zoneId;
-      var timeInMillis = new Date().getTime();
-      var keyCode = hashcode(zone + '' + timeInMillis);
-      var requestParams = {
-        reqType: 'AdsSetup',
-        protocolVersion: '2.0',
-        zoneId: zone,
-        componentId: getComponentId(currentBidRequest.params.format),
-        timestamp: timeInMillis,
-        pKey: keyCode
-      };
+    var currentBidRequest = bidRequests[0];
+    if (bidRequests.length > 1) {
+      utils.logMessage('Prebid.JS - freewheel bid adapter: only one ad unit is required.');
+    }
 
-      // Add GDPR flag and consent string
-      if (bidderRequest && bidderRequest.gdprConsent) {
-        requestParams._fw_gdpr_consent = bidderRequest.gdprConsent.consentString;
+    var zone = currentBidRequest.params.zoneId;
+    var timeInMillis = new Date().getTime();
+    var keyCode = hashcode(zone + '' + timeInMillis);
 
-        if (typeof bidderRequest.gdprConsent.gdprApplies === 'boolean') {
-          requestParams._fw_gdpr = bidderRequest.gdprConsent.gdprApplies;
-        }
-      }
-
-      if (currentBidRequest.params.gdpr_consented_providers) {
-        requestParams._fw_gdpr_consented_providers = currentBidRequest.params.gdpr_consented_providers;
-      }
-
-      // Add CCPA consent string
-      if (bidderRequest && bidderRequest.uspConsent) {
-        requestParams._fw_us_privacy = bidderRequest.uspConsent;
-      }
-
-      var vastParams = currentBidRequest.params.vastUrlParams;
-      if (typeof vastParams === 'object') {
-        for (var key in vastParams) {
-          if (vastParams.hasOwnProperty(key)) {
-            requestParams[key] = vastParams[key];
-          }
-        }
-      }
-
-      var location = (bidderRequest && bidderRequest.refererInfo) ? bidderRequest.refererInfo.referer : getTopMostWindow().location.href;
-      if (isValidUrl(location)) {
-        requestParams.loc = location;
-      }
-
-      var playerSize = [];
-      if (currentBidRequest.mediaTypes.video && currentBidRequest.mediaTypes.video.playerSize) {
-        // If mediaTypes is video, get size from mediaTypes.video.playerSize per http://prebid.org/blog/pbjs-3
-        if (utils.isArray(currentBidRequest.mediaTypes.video.playerSize[0])) {
-          playerSize = currentBidRequest.mediaTypes.video.playerSize[0];
-        } else {
-          playerSize = currentBidRequest.mediaTypes.video.playerSize;
-        }
-      } else if (currentBidRequest.mediaTypes.banner.sizes) {
-        // If mediaTypes is banner, get size from mediaTypes.banner.sizes per http://prebid.org/blog/pbjs-3
-        playerSize = getBiggerSizeWithLimit(currentBidRequest.mediaTypes.banner.sizes, currentBidRequest.mediaTypes.banner.minSizeLimit, currentBidRequest.mediaTypes.banner.maxSizeLimit);
-      } else {
-        // Backward compatible code, in case size still pass by sizes in bid request
-        playerSize = getBiggerSize(currentBidRequest.sizes);
-      }
-
-      if (playerSize[0] > 0 || playerSize[1] > 0) {
-        requestParams.playerSize = playerSize[0] + 'x' + playerSize[1];
-      }
-
-      return {
-        method: 'GET',
-        url: FREEWHEEL_ADSSETUP,
-        data: requestParams,
-        bidRequest: currentBidRequest
-      };
+    var requestParams = {
+      reqType: 'AdsSetup',
+      protocolVersion: '2.0',
+      zoneId: zone,
+      componentId: getComponentId(currentBidRequest.params.format),
+      timestamp: timeInMillis,
+      pKey: keyCode
     };
 
-    return bidRequests.map(function(currentBidRequest) {
-      return buildRequest(currentBidRequest, bidderRequest);
-    });
+    // Add GDPR flag and consent string
+    if (bidderRequest.gdprConsent) {
+      requestParams._fw_gdpr_consent = bidderRequest.gdprConsent.consentString;
+
+      if (typeof bidderRequest.gdprConsent.gdprApplies === 'boolean') {
+        requestParams._fw_gdpr = bidderRequest.gdprConsent.gdprApplies;
+      }
+    }
+
+    if (currentBidRequest.params.gdpr_consented_providers) {
+      requestParams._fw_gdpr_consented_providers = currentBidRequest.params.gdpr_consented_providers;
+    }
+
+    var vastParams = currentBidRequest.params.vastUrlParams;
+    if (typeof vastParams === 'object') {
+      for (var key in vastParams) {
+        if (vastParams.hasOwnProperty(key)) {
+          requestParams[key] = vastParams[key];
+        }
+      }
+    }
+
+    var location = utils.getTopWindowUrl();
+    if (isValidUrl(location)) {
+      requestParams.loc = location;
+    }
+
+    var playerSize = getBiggerSize(currentBidRequest.sizes);
+    if (playerSize[0] > 0 || playerSize[1] > 0) {
+      requestParams.playerSize = playerSize[0] + 'x' + playerSize[1];
+    }
+
+    return {
+      method: 'GET',
+      url: FREEWHEEL_ADSSETUP,
+      data: requestParams,
+      bidRequest: currentBidRequest
+    };
   },
 
   /**
@@ -340,21 +292,7 @@ export const spec = {
   */
   interpretResponse: function(serverResponse, request) {
     var bidrequest = request.bidRequest;
-    var playerSize = [];
-    if (bidrequest.mediaTypes.video && bidrequest.mediaTypes.video.playerSize) {
-      // If mediaTypes is video, get size from mediaTypes.video.playerSize per http://prebid.org/blog/pbjs-3
-      if (utils.isArray(bidrequest.mediaTypes.video.playerSize[0])) {
-        playerSize = bidrequest.mediaTypes.video.playerSize[0];
-      } else {
-        playerSize = bidrequest.mediaTypes.video.playerSize;
-      }
-    } else if (bidrequest.mediaTypes.banner.sizes) {
-      // If mediaTypes is banner, get size from mediaTypes.banner.sizes per http://prebid.org/blog/pbjs-3
-      playerSize = getBiggerSizeWithLimit(bidrequest.mediaTypes.banner.sizes, bidrequest.mediaTypes.banner.minSizeLimit, bidrequest.mediaTypes.banner.maxSizeLimit);
-    } else {
-      // Backward compatible code, in case size still pass by sizes in bid request
-      playerSize = getBiggerSize(bidrequest.sizes);
-    }
+    var playerSize = getBiggerSize(bidrequest.sizes);
 
     if (typeof serverResponse == 'object' && typeof serverResponse.body == 'string') {
       serverResponse = serverResponse.body;
@@ -371,7 +309,6 @@ export const spec = {
 
     const princingData = getPricing(xmlDoc);
     const creativeId = getCreativeId(xmlDoc);
-    const dealId = getDealId(xmlDoc);
 
     const topWin = getTopMostWindow();
     if (!topWin.freewheelssp_cache) {
@@ -390,16 +327,20 @@ export const spec = {
         creativeId: creativeId,
         currency: princingData.currency,
         netRevenue: true,
-        ttl: 360,
-        dealId: dealId
+        ttl: 360
       };
 
-      if (bidrequest.mediaTypes.video) {
-        bidResponse.vastXml = serverResponse;
+      var mediaTypes = bidrequest.mediaTypes || {};
+      if (mediaTypes.video) {
+        // bidResponse.vastXml = serverResponse;
         bidResponse.mediaType = 'video';
+
+        var blob = new Blob([serverResponse], {type: 'application/xml'});
+        bidResponse.vastUrl = window.URL.createObjectURL(blob);
+      } else {
+        bidResponse.ad = formatAdHTML(bidrequest, playerSize);
       }
 
-      bidResponse.ad = formatAdHTML(bidrequest, playerSize);
       bidResponses.push(bidResponse);
     }
 
@@ -407,13 +348,11 @@ export const spec = {
   },
 
   getUserSyncs: function(syncOptions) {
-    if (syncOptions && syncOptions.pixelEnabled) {
+    if (syncOptions.pixelEnabled) {
       return [{
         type: 'image',
         url: USER_SYNC_URL
       }];
-    } else {
-      return [];
     }
   },
 

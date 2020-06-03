@@ -1,12 +1,13 @@
-import { ajax } from '../src/ajax.js';
-import adapter from '../src/AnalyticsAdapter.js';
-import adapterManager from '../src/adapterManager.js';
+import { ajax } from '../src/ajax';
+import adapter from '../src/AnalyticsAdapter';
+import adapterManager from '../src/adapterManager';
 import CONSTANTS from '../src/constants.json';
-import * as utils from '../src/utils.js';
+import * as url from '../src/url';
+import * as utils from '../src/utils';
 
 const emptyUrl = '';
 const analyticsType = 'endpoint';
-const yuktamediaAnalyticsVersion = 'v2.0.0';
+const yuktamediaAnalyticsVersion = 'v1.0.0';
 
 let initOptions;
 let auctionTimestamp;
@@ -54,7 +55,7 @@ function mapBidRequests(params) {
         requestId: bid.bidderRequestId,
         auctionId: bid.auctionId,
         transactionId: bid.transactionId,
-        sizes: utils.parseSizesInput(bid.mediaTypes.banner.sizes).toString(),
+        sizes: utils.parseSizesInput(bid.sizes).toString(),
         renderStatus: 1,
         requestTimestamp: params.auctionStart
       });
@@ -108,14 +109,15 @@ function mapBidResponse(bidResponse, status) {
 }
 
 function send(data, status) {
-  let location = utils.getWindowLocation();
+  let location = utils.getTopWindowLocation();
+  let secure = location.protocol == 'https:';
   if (typeof data !== 'undefined' && typeof data.auctionInit !== 'undefined') {
-    data.auctionInit = Object.assign({ host: location.host, path: location.pathname, search: location.search }, data.auctionInit);
+    data.auctionInit = Object.assign({ host: location.host, path: location.pathname, hash: location.hash, search: location.search }, data.auctionInit);
   }
   data.initOptions = initOptions;
 
-  let yuktamediaAnalyticsRequestUrl = utils.buildUrl({
-    protocol: 'https',
+  let yuktamediaAnalyticsRequestUrl = url.format({
+    protocol: secure ? 'https' : 'http',
     hostname: 'analytics-prebid.yuktamedia.com',
     pathname: status == 'auctionEnd' ? '/api/bids' : '/api/bid/won',
     search: {
@@ -125,7 +127,7 @@ function send(data, status) {
     }
   });
 
-  ajax(yuktamediaAnalyticsRequestUrl, undefined, JSON.stringify(data), { method: 'POST', contentType: 'text/plain' });
+  ajax(yuktamediaAnalyticsRequestUrl, undefined, JSON.stringify(data), { method: 'POST', contentType: 'application/json' });
 }
 
 yuktamediaAnalyticsAdapter.originEnableAnalytics = yuktamediaAnalyticsAdapter.enableAnalytics;

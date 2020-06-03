@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /** @module example */
 
 window.ExampleAnalyticsGlobalObject2 = function(hander, type, data) {

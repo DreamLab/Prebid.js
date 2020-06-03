@@ -1,7 +1,7 @@
-import adapter from '../src/AnalyticsAdapter.js';
-import adapterManager from '../src/adapterManager.js';
+import adapter from '../src/AnalyticsAdapter';
+import adapterManager from '../src/adapterManager';
 import CONSTANTS from '../src/constants.json';
-import * as utils from '../src/utils.js';
+import * as utils from '../src/utils';
 
 const {
   EVENTS: { BID_REQUESTED, BID_TIMEOUT, BID_RESPONSE, BID_WON }

@@ -3,13 +3,8 @@
  * stored in the page's domain.  When the module is included, an id is generated if needed,
  * persisted as a cookie, and automatically appended to all the bidRequest as bid.crumbs.pubcid.
  */
-import * as utils from '../src/utils.js';
-import { config } from '../src/config.js';
-import events from '../src/events.js';
-import CONSTANTS from '../src/constants.json';
-import { getStorageManager } from '../src/storageManager.js';
-
-const storage = getStorageManager();
+import * as utils from '../src/utils'
+import { config } from '../src/config';
 
 const ID_NAME = '_pubcid';
 const OPTOUT_NAME = '_pubcid_optout';
@@ -23,9 +18,7 @@ let pubcidConfig = {
   enabled: true,
   interval: DEFAULT_EXPIRES,
   typeEnabled: LOCAL_STORAGE,
-  create: true,
-  extend: true,
-  pixelUrl: ''
+  readOnly: false
 };
 
 /**
@@ -39,10 +32,10 @@ export function setStorageItem(key, val, expires) {
   try {
     if (expires !== undefined && expires != null) {
       const expStr = (new Date(Date.now() + (expires * 60 * 1000))).toUTCString();
-      storage.setDataInLocalStorage(key + EXP_SUFFIX, expStr);
+      localStorage.setItem(key + EXP_SUFFIX, expStr);
     }
 
-    storage.setDataInLocalStorage(key, val);
+    localStorage.setItem(key, val);
   } catch (e) {
     utils.logMessage(e);
   }
@@ -57,18 +50,18 @@ export function getStorageItem(key) {
   let val = null;
 
   try {
-    const expVal = storage.getDataFromLocalStorage(key + EXP_SUFFIX);
+    const expVal = localStorage.getItem(key + EXP_SUFFIX);
 
     if (!expVal) {
       // If there is no expiry time, then just return the item
-      val = storage.getDataFromLocalStorage(key);
+      val = localStorage.getItem(key);
     } else {
       // Only return the item if it hasn't expired yet.
       // Otherwise delete the item.
       const expDate = new Date(expVal);
       const isValid = (expDate.getTime() - Date.now()) > 0;
       if (isValid) {
-        val = storage.getDataFromLocalStorage(key);
+        val = localStorage.getItem(key);
       } else {
         removeStorageItem(key);
       }
@@ -86,8 +79,8 @@ export function getStorageItem(key) {
  */
 export function removeStorageItem(key) {
   try {
-    storage.removeDataFromLocalStorage(key + EXP_SUFFIX);
-    storage.removeDataFromLocalStorage(key);
+    localStorage.removeItem(key + EXP_SUFFIX);
+    localStorage.removeItem(key);
   } catch (e) {
     utils.logMessage(e);
   }
@@ -96,16 +89,17 @@ export function removeStorageItem(key) {
 /**
  * Read a value either from cookie or local storage
  * @param {string} name Name of the item
- * @param {string} type storage type override
  * @returns {string|null} a string if item exists
  */
-function readValue(name, type) {
+function readValue(name) {
   let value;
-  if (!type) { type = pubcidConfig.typeEnabled; }
-  if (type === COOKIE) {
-    value = storage.getCookie(name);
-  } else if (type === LOCAL_STORAGE) {
+  if (pubcidConfig.typeEnabled === COOKIE) {
+    value = getCookie(name);
+  } else if (pubcidConfig.typeEnabled === LOCAL_STORAGE) {
     value = getStorageItem(name);
+    if (!value) {
+      value = getCookie(name);
+    }
   }
 
   if (value === 'undefined' || value === 'null') { return null; }
@@ -122,35 +116,11 @@ function readValue(name, type) {
 function writeValue(name, value, expInterval) {
   if (name && value) {
     if (pubcidConfig.typeEnabled === COOKIE) {
-      setCookie(name, value, expInterval, 'Lax');
+      setCookie(name, value, expInterval);
     } else if (pubcidConfig.typeEnabled === LOCAL_STORAGE) {
       setStorageItem(name, value, expInterval);
     }
   }
-}
-
-/**
- * Add a callback at end of auction to fetch a pixel
- * @param {string} pixelUrl Pixel URL
- * @param {string} id pubcid
- * @returns {boolean} True if callback is queued
- */
-function queuePixelCallback(pixelUrl, id) {
-  if (!pixelUrl) { return false; }
-
-  id = id || '';
-
-  // Use pubcid as a cache buster
-  const urlInfo = utils.parseUrl(pixelUrl);
-  urlInfo.search.id = encodeURIComponent('pubcid:' + id);
-  const targetUrl = utils.buildUrl(urlInfo);
-
-  events.on(CONSTANTS.EVENTS.AUCTION_END, function auctionEndHandler() {
-    events.off(CONSTANTS.EVENTS.AUCTION_END, auctionEndHandler);
-    utils.triggerPixel(targetUrl);
-  });
-
-  return true;
 }
 
 export function isPubcidEnabled() { return pubcidConfig.enabled; }
@@ -182,25 +152,15 @@ export function requestBidHook(next, config) {
     // Otherwise get the existing cookie
     pubcid = readValue(ID_NAME);
 
-    if (!pubcid) {
-      if (pubcidConfig.create) {
-        // Special handling for local storage to retain previously stored id in cookies
-        if (pubcidConfig.typeEnabled === LOCAL_STORAGE) {
-          pubcid = readValue(ID_NAME, COOKIE);
-        }
-        // Generate a new id
-        if (!pubcid) {
-          pubcid = utils.generateUUID();
-        }
+    if (!pubcidConfig.readOnly) {
+      if (!pubcid) {
+        pubcid = utils.generateUUID();
         // Update the cookie/storage with the latest expiration date
         writeValue(ID_NAME, pubcid, pubcidConfig.interval);
         // Only return pubcid if it is saved successfully
         pubcid = readValue(ID_NAME);
-      }
-      queuePixelCallback(pubcidConfig.pixelUrl, pubcid);
-    } else if (pubcidConfig.extend) {
-      // Update the cookie/storage with the latest expiration date
-      if (!queuePixelCallback(pubcidConfig.pixelUrl, pubcid)) {
+      } else {
+        // Update the cookie/storage with the latest expiration date
         writeValue(ID_NAME, pubcid, pubcidConfig.interval);
       }
     }
@@ -217,20 +177,24 @@ export function requestBidHook(next, config) {
       });
     });
   }
-
   return next.call(this, config);
 }
 
 // Helper to set a cookie
-export function setCookie(name, value, expires, sameSite) {
+export function setCookie(name, value, expires) {
   let expTime = new Date();
   expTime.setTime(expTime.getTime() + expires * 1000 * 60);
-  storage.setCookie(name, value, expTime.toGMTString(), sameSite);
+  window.document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;expires=' +
+    expTime.toGMTString();
 }
 
 // Helper to read a cookie
 export function getCookie(name) {
-  return storage.getCookie(name);
+  if (name && window.document.cookie) {
+    let m = window.document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]*)\\s*(;|$)');
+    return m ? decodeURIComponent(m[2]) : null;
+  }
+  return null;
 }
 
 /**
@@ -238,23 +202,17 @@ export function getCookie(name) {
  * @param {boolean} enable Enable or disable pubcid.  By default the module is enabled.
  * @param {number} expInterval Expiration interval of the cookie in minutes.
  * @param {string} type Type of storage to use
- * @param {boolean} create Create the id if missing.  Default is true.
- * @param {boolean} extend Extend the stored value when id is retrieved.  Default is true.
- * @param {string} pixelUrl A pixel URL back to the publisher's own domain that may modify cookie attributes.
+ * @param {boolean} readOnly Read but not update id
  */
 
-export function setConfig({ enable, expInterval, type = 'html5,cookie', create, extend, pixelUrl } = {}) {
-  if (enable !== undefined) { pubcidConfig.enabled = enable; }
-
-  if (expInterval !== undefined) { pubcidConfig.interval = parseInt(expInterval, 10); }
-
+export function setConfig({ enable = true, expInterval = DEFAULT_EXPIRES, type = 'html5,cookie', readOnly = false } = {}) {
+  pubcidConfig.enabled = enable;
+  pubcidConfig.interval = parseInt(expInterval, 10);
   if (isNaN(pubcidConfig.interval)) {
     pubcidConfig.interval = DEFAULT_EXPIRES;
   }
 
-  if (create !== undefined) { pubcidConfig.create = create; }
-  if (extend !== undefined) { pubcidConfig.extend = extend; }
-  if (pixelUrl !== undefined) { pubcidConfig.pixelUrl = pixelUrl; }
+  pubcidConfig.readOnly = readOnly;
 
   // Default is to use local storage. Fall back to
   // cookie only if local storage is not supported.
@@ -265,12 +223,12 @@ export function setConfig({ enable, expInterval, type = 'html5,cookie', create, 
   for (let i = 0; i < typeArray.length; ++i) {
     const name = typeArray[i].trim();
     if (name === COOKIE) {
-      if (storage.cookiesAreEnabled()) {
+      if (utils.cookiesAreEnabled()) {
         pubcidConfig.typeEnabled = COOKIE;
         break;
       }
     } else if (name === LOCAL_STORAGE) {
-      if (storage.hasLocalStorage()) {
+      if (utils.hasLocalStorage()) {
         pubcidConfig.typeEnabled = LOCAL_STORAGE;
         break;
       }
@@ -284,10 +242,7 @@ export function setConfig({ enable, expInterval, type = 'html5,cookie', create, 
 export function initPubcid() {
   config.getConfig('pubcid', config => setConfig(config.pubcid));
 
-  const optout = (storage.cookiesAreEnabled() && readValue(OPTOUT_NAME, COOKIE)) ||
-    (storage.hasLocalStorage() && readValue(OPTOUT_NAME, LOCAL_STORAGE));
-
-  if (!optout) {
+  if (!readValue(OPTOUT_NAME)) {
     $$PREBID_GLOBAL$$.requestBids.before(requestBidHook);
   }
 }

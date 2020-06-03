@@ -9,14 +9,8 @@ function getCapabilities() {
     return platformMap[os];
   }
 
-  // only Edge 16, Chrome 74 & Firefox 66 run as part of functional tests
-  // rest of the browsers are discarded.
+  // remove the IE11 browser from functional tests
   delete browsers['bs_ie_11_windows_10'];
-  delete browsers['bs_edge_17_windows_10'];
-  delete browsers['bs_chrome_75_windows_10'];
-  delete browsers['bs_firefox_67_windows_10'];
-  delete browsers['bs_safari_11_mac_high_sierra'];
-  delete browsers['bs_safari_12_mac_mojave'];
 
   let capabilities = []
   Object.keys(browsers).forEach(key => {
@@ -36,7 +30,7 @@ function getCapabilities() {
 
 exports.config = {
   specs: [
-    './test/spec/e2e/**/*.spec.js'
+    './test/spec/lfe2e/specs/*.js'
   ],
   services: ['browserstack'],
   user: process.env.BROWSERSTACK_USERNAME,

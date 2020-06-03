@@ -1,5 +1,12 @@
 
-const allowedModules = require("./allowedModules");
+const sharedWhiteList = [
+  "core-js/library/fn/array/find", // no ie11
+  "core-js/library/fn/array/includes", // no ie11
+  "core-js/library/fn/set", // ie11 supports Set but not Set#values
+  "core-js/library/fn/string/includes", // no ie11
+  "core-js/library/fn/number/is-integer", // no ie11,
+  "core-js/library/fn/array/from" // no ie11
+];
 
 module.exports = {
   "env": {
@@ -15,8 +22,7 @@ module.exports = {
   },
   "extends": "standard",
   "plugins": [
-    "prebid",
-    "import"
+    "prebid"
   ],
   "globals": {
     "$$PREBID_GLOBAL$$": false
@@ -28,7 +34,6 @@ module.exports = {
     "comma-dangle": "off",
     "semi": "off",
     "space-before-function-paren": "off",
-    "import/extensions": ["error", "ignorePackages"],
 
     // Exceptions below this line are temporary, so that eslint can be added into the CI process.
     // Violations of these styles should be fixed, and the exceptions removed over time.
@@ -37,14 +42,28 @@ module.exports = {
     "eqeqeq": "off",
     "no-return-assign": "off",
     "no-throw-literal": "off",
-    "no-undef": 2,
+    "no-undef": "off",
     "no-useless-escape": "off",
-    "no-console": "error"
   },
-  "overrides": Object.keys(allowedModules).map((key) => ({
-    "files": key + "/**/*.js",
+  "overrides": [{
+    "files": "modules/**/*.js",
     "rules": {
-      "prebid/validate-imports": ["error", allowedModules[key]]
+      "prebid/validate-imports": ["error", [
+        ...sharedWhiteList,
+        "jsencrypt",
+        "crypto-js"
+      ]]
     }
-  }))
+  }, {
+    "files": "src/**/*.js",
+    "rules": {
+      "prebid/validate-imports": ["error", [
+        ...sharedWhiteList,
+        "fun-hooks/no-eval",
+        "just-clone",
+        "dlv",
+        "dset"
+      ]]
+    }
+  }]
 };

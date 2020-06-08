@@ -7,6 +7,12 @@ const CSR_ENDPOINT = 'https://csr.onet.pl/_s/csr-006/csr.json?';
 describe('rasBidAdapter', function () {
   const adapter = newBidder(spec);
 
+  describe('inherited functions', function () {
+    it('exists and is a function', function () {
+      expect(adapter.callBids).to.exist.and.to.be.a('function');
+    });
+  });
+
   describe('isBidRequestValid', function () {
     it('should return true when required params found', function () {
       const bid = {
@@ -38,8 +44,20 @@ describe('rasBidAdapter', function () {
     const bid = {
       sizes: [[300, 250], [300, 600]],
       bidder: 'ringieraxelspringer',
+      bidId: 1,
       params: {
         slot: 'test',
+        area: 'NOWASG',
+        site: 'GLOWNA',
+        network: '1746213'
+      }
+    };
+    const bid2 = {
+      sizes: [[750, 300]],
+      bidder: 'ringieraxelspringer',
+      bidId: 2,
+      params: {
+        slot: 'test2',
         area: 'NOWASG',
         site: 'GLOWNA',
         network: '1746213'
@@ -49,6 +67,7 @@ describe('rasBidAdapter', function () {
       const requests = spec.buildRequests([bid]);
       expect(requests[0].url).to.have.string(CSR_ENDPOINT);
       expect(requests[0].url).to.have.string('slot0=test');
+      expect(requests[0].url).to.have.string('id0=1');
       expect(requests[0].url).to.have.string('nid=1746213');
       expect(requests[0].url).to.have.string('site=GLOWNA');
       expect(requests[0].url).to.have.string('area=NOWASG');
@@ -59,9 +78,14 @@ describe('rasBidAdapter', function () {
     });
     it('should parse bids to request from pageContext', function () {
       const bidCopy = { ...bid, pageContext: { 'dr': 'test.pl', keyValues: { seg_ab: 10 } } };
-      const requests = spec.buildRequests([bidCopy]);
+      const requests = spec.buildRequests([bidCopy, bid2]);
       expect(requests[0].url).to.have.string(CSR_ENDPOINT);
       expect(requests[0].url).to.have.string('slot0=test');
+      expect(requests[0].url).to.have.string('id0=1');
+      expect(requests[0].url).to.have.string('iusizes0=300x250,300x600');
+      expect(requests[0].url).to.have.string('slot1=test2');
+      expect(requests[0].url).to.have.string('id1=2');
+      expect(requests[0].url).to.have.string('iusizes1=750x300');
       expect(requests[0].url).to.have.string('nid=1746213');
       expect(requests[0].url).to.have.string('site=GLOWNA');
       expect(requests[0].url).to.have.string('area=NOWASG');
@@ -91,8 +115,9 @@ describe('rasBidAdapter', function () {
       'iv': '202003191334467636346500'
     };
     it('should get correct bid response', function () {
-      const resp = spec.interpretResponse({ body: response }, {});
+      const resp = spec.interpretResponse({ body: response }, { bidIds: [{ slot: 'flat-belkagorna', bidId: 1 }] });
       expect(resp[0]).to.have.all.keys('cpm', 'currency', 'netRevenue', 'requestId', 'ttl', 'width', 'height', 'creativeId', 'dealId', 'ad', 'meta');
+      expect(resp.length).to.equal(1);
     });
     it('should handle empty ad', function () {
       let res = {

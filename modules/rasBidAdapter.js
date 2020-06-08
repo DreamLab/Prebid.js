@@ -1,6 +1,6 @@
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { BANNER } from '../src/mediaTypes.js';
-import { isEmpty } from '../src/utils.js';
+import { isEmpty, getAdUnitSizes, parseSizesInput } from '../src/utils.js';
 
 const BIDDER_CODE = 'ringieraxelspringer';
 const ENDPOINT_URL = 'https://csr.onet.pl/_s/csr-006/csr.json?';
@@ -28,31 +28,19 @@ function parseParams(params) {
   return newParams;
 }
 
-function buildQueryParamsFromObject(bid) {
-  const { params } = bid;
-  const requestParams = {
-    slot0: params.slot,
-    nid: params.network,
-    site: params.site,
-    area: params.area,
-    cre_format: 'html',
-    systems: 'das',
-    ems_url: 1,
-    bid_rate: 1,
-    ...parseParams(params)
-  };
-  return {
-    payload: Object.keys(requestParams).map((key) => key + '=' + encodeURIComponent(requestParams[key])).join('&'),
-    bidId: bid.bidId
-  };
-}
-
-const buildBid = (bidId) => (ad) => {
+const buildBid = (bidIds) => (ad) => {
   if (ad.type === 'empty') {
-    return null
+    return null;
+  }
+  if (!bidIds || !bidIds.length) {
+    return null;
+  }
+  const bid = bidIds.find((bid) => bid.slot === ad.slot);
+  if (!bid) {
+    return null;
   }
   return {
-    requestId: bidId,
+    requestId: bid.bidId,
     cpm: ad.bid_rate ? ad.bid_rate.toFixed(2) : 0,
     width: ad.width || 0,
     height: ad.height || 0,
@@ -68,6 +56,35 @@ const buildBid = (bidId) => (ad) => {
   };
 };
 
+const getContextParams = (bidRequests) => {
+  const bid = bidRequests[0];
+  const { params } = bid;
+  const requestParams = {
+    nid: params.network,
+    site: params.site,
+    area: params.area,
+    cre_format: 'html',
+    systems: 'das',
+    ems_url: 1,
+    bid_rate: 1,
+    ...parseParams(params)
+  };
+  return Object.keys(requestParams).map((key) => key + '=' + encodeURIComponent(requestParams[key])).join('&');
+};
+
+const getSlots = (bidRequests) => {
+  let queryString = '';
+  const batchSize = bidRequests.length;
+  for (let i = 0; i < batchSize; i++) {
+    const adunit = bidRequests[i];
+    const { slot } = adunit.params;
+    const sizes = parseSizesInput(getAdUnitSizes(adunit)).join(',');
+    queryString += `&slot${i}=${slot}`;
+    queryString += sizes.length ? `&iusizes${i}=${sizes}` : ''
+  }
+  return queryString;
+};
+
 export const spec = {
   code: BIDDER_CODE,
   supportedMediaTypes: [BANNER],
@@ -81,21 +98,23 @@ export const spec = {
   },
 
   buildRequests: function (bidRequests, bidderRequest) {
-    const requestsQuery = bidRequests.map(buildQueryParamsFromObject);
-    return requestsQuery.map((query) => ({
+    const slotsQuery = getSlots(bidRequests);
+    const contextQuery = getContextParams(bidRequests);
+    const bidIds = bidRequests.map((bid) => ({ slot: bid.params.slot, bidId: bid.bidId }));
+    return [{
       method: 'POST',
-      url: ENDPOINT_URL + query.payload,
-      bidId: query.bidId
-    }));
+      url: ENDPOINT_URL + contextQuery + slotsQuery,
+      bidIds: bidIds
+    }];
   },
 
   interpretResponse: function (serverResponse, bidRequest) {
     const response = serverResponse.body;
-    const bidId = bidRequest.bidId;
+    const bidIds = bidRequest.bidIds;
     if (!response || !response.ads || response.ads.length === 0) {
       return [];
     }
-    return response.ads.map(buildBid(bidId)).filter((bid) => !isEmpty(bid));
+    return response.ads.map(buildBid(bidIds)).filter((bid) => !isEmpty(bid));
   },
 
   getUserSyncs: function (syncOptions, serverResponses) {

@@ -44,6 +44,7 @@ describe('rasBidAdapter', function () {
     const bid = {
       sizes: [[300, 250], [300, 600]],
       bidder: 'ringieraxelspringer',
+      bidId: 1,
       params: {
         slot: 'test',
         area: 'NOWASG',
@@ -54,6 +55,7 @@ describe('rasBidAdapter', function () {
     const bid2 = {
       sizes: [[750, 300]],
       bidder: 'ringieraxelspringer',
+      bidId: 2,
       params: {
         slot: 'test2',
         area: 'NOWASG',
@@ -65,6 +67,7 @@ describe('rasBidAdapter', function () {
       const requests = spec.buildRequests([bid]);
       expect(requests[0].url).to.have.string(CSR_ENDPOINT);
       expect(requests[0].url).to.have.string('slot0=test');
+      expect(requests[0].url).to.have.string('id0=1');
       expect(requests[0].url).to.have.string('nid=1746213');
       expect(requests[0].url).to.have.string('site=GLOWNA');
       expect(requests[0].url).to.have.string('area=NOWASG');
@@ -78,8 +81,10 @@ describe('rasBidAdapter', function () {
       const requests = spec.buildRequests([bidCopy, bid2]);
       expect(requests[0].url).to.have.string(CSR_ENDPOINT);
       expect(requests[0].url).to.have.string('slot0=test');
+      expect(requests[0].url).to.have.string('id0=1');
       expect(requests[0].url).to.have.string('iusizes0=300x250,300x600');
       expect(requests[0].url).to.have.string('slot1=test2');
+      expect(requests[0].url).to.have.string('id1=2');
       expect(requests[0].url).to.have.string('iusizes1=750x300');
       expect(requests[0].url).to.have.string('nid=1746213');
       expect(requests[0].url).to.have.string('site=GLOWNA');

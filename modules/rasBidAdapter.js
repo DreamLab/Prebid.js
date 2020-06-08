@@ -28,19 +28,12 @@ function parseParams(params) {
   return newParams;
 }
 
-const buildBid = (bidIds) => (ad) => {
+const buildBid = (ad) => {
   if (ad.type === 'empty') {
     return null;
   }
-  if (!bidIds || !bidIds.length) {
-    return null;
-  }
-  const bid = bidIds.find((bid) => bid.slot === ad.slot);
-  if (!bid) {
-    return null;
-  }
   return {
-    requestId: bid.bidId,
+    requestId: ad.id,
     cpm: ad.bid_rate ? ad.bid_rate.toFixed(2) : 0,
     width: ad.width || 0,
     height: ad.height || 0,
@@ -79,7 +72,7 @@ const getSlots = (bidRequests) => {
     const adunit = bidRequests[i];
     const { slot } = adunit.params;
     const sizes = parseSizesInput(getAdUnitSizes(adunit)).join(',');
-    queryString += `&slot${i}=${slot}`;
+    queryString += `&slot${i}=${slot}&id${i}=${adunit.bidId}`;
     queryString += sizes.length ? `&iusizes${i}=${sizes}` : ''
   }
   return queryString;
@@ -110,11 +103,10 @@ export const spec = {
 
   interpretResponse: function (serverResponse, bidRequest) {
     const response = serverResponse.body;
-    const bidIds = bidRequest.bidIds;
     if (!response || !response.ads || response.ads.length === 0) {
       return [];
     }
-    return response.ads.map(buildBid(bidIds)).filter((bid) => !isEmpty(bid));
+    return response.ads.map(buildBid).filter((bid) => !isEmpty(bid));
   },
 
   getUserSyncs: function (syncOptions, serverResponses) {

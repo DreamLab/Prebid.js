@@ -1,6 +1,7 @@
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { BANNER } from '../src/mediaTypes.js';
 import { isEmpty, getAdUnitSizes, parseSizesInput } from '../src/utils.js';
+import * as utils from "../src/utils";
 
 const BIDDER_CODE = 'ringieraxelspringer';
 const ENDPOINT_URL = 'https://csr.onet.pl/_s/csr-006/csr.json?';
@@ -78,6 +79,13 @@ const getSlots = (bidRequests) => {
   return queryString;
 };
 
+const getGdprParams = (bidderRequest) => {
+  const gdprApplies = utils.deepAccess(bidderRequest, 'gdprConsent.gdprApplies');
+  const consentString = utils.deepAccess(bidderRequest, 'gdprConsent.consentString');
+  let queryString = `&gdpr_applies=${gdprApplies}&euconsent=${consentString}`;
+  return queryString;
+};
+
 export const spec = {
   code: BIDDER_CODE,
   supportedMediaTypes: [BANNER],
@@ -93,10 +101,11 @@ export const spec = {
   buildRequests: function (bidRequests, bidderRequest) {
     const slotsQuery = getSlots(bidRequests);
     const contextQuery = getContextParams(bidRequests);
+    const gdprQuery = getGdprParams(bidderRequest);
     const bidIds = bidRequests.map((bid) => ({ slot: bid.params.slot, bidId: bid.bidId }));
     return [{
       method: 'POST',
-      url: ENDPOINT_URL + contextQuery + slotsQuery,
+      url: ENDPOINT_URL + contextQuery + slotsQuery + gdprQuery,
       bidIds: bidIds
     }];
   },

@@ -1,7 +1,6 @@
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { BANNER } from '../src/mediaTypes.js';
-import { isEmpty, getAdUnitSizes, parseSizesInput } from '../src/utils.js';
-import * as utils from "../src/utils";
+import { isEmpty, getAdUnitSizes, parseSizesInput, deepAccess } from '../src/utils.js';
 
 const BIDDER_CODE = 'ringieraxelspringer';
 const ENDPOINT_URL = 'https://csr.onet.pl/_s/csr-006/csr.json?';
@@ -80,8 +79,11 @@ const getSlots = (bidRequests) => {
 };
 
 const getGdprParams = (bidderRequest) => {
-  const gdprApplies = utils.deepAccess(bidderRequest, 'gdprConsent.gdprApplies');
-  const consentString = utils.deepAccess(bidderRequest, 'gdprConsent.consentString');
+  const gdprApplies = deepAccess(bidderRequest, 'gdprConsent.gdprApplies');
+  let consentString = deepAccess(bidderRequest, 'gdprConsent.consentString');
+  if (consentString === undefined) {
+    consentString = '';
+  }
   let queryString = `&gdpr_applies=${gdprApplies}&euconsent=${consentString}`;
   return queryString;
 };

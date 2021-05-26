@@ -1,6 +1,8 @@
 import { expect } from 'chai';
+import * as utils from 'src/utils.js';
 import { spec } from 'modules/rasBidAdapter.js';
 import { newBidder } from 'src/adapters/bidderFactory.js';
+
 
 const CSR_ENDPOINT = 'https://csr.onet.pl/_s/csr-006/csr.json?';
 
@@ -64,6 +66,15 @@ describe('rasBidAdapter', function () {
       }
     };
     it('should parse bids to request', function () {
+      sinon.stub(utils, 'deepAccess').callsFake((bidderRequest, path) => {
+        if (path === 'gdprConsent.gdprApplies') {
+          return true;
+        } else if (path === 'gdprConsent.consentString') {
+          return 'some-consent-string';
+        }
+        return undefined;
+      });
+
       const requests = spec.buildRequests([bid]);
       expect(requests[0].url).to.have.string(CSR_ENDPOINT);
       expect(requests[0].url).to.have.string('slot0=test');
@@ -75,6 +86,8 @@ describe('rasBidAdapter', function () {
       expect(requests[0].url).to.have.string('systems=das');
       expect(requests[0].url).to.have.string('ems_url=1');
       expect(requests[0].url).to.have.string('bid_rate=1');
+      expect(requests[0].url).to.have.string('gdpr_applies=true');
+      expect(requests[0].url).to.have.string('euconsent=some-consent-string');
     });
     it('should parse bids to request from pageContext', function () {
       const bidCopy = { ...bid, pageContext: { 'dr': 'test.pl', keyValues: { seg_ab: 10 } } };

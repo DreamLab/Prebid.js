@@ -1,8 +1,6 @@
 import { expect } from 'chai';
-import * as utils from 'src/utils.js';
 import { spec } from 'modules/rasBidAdapter.js';
 import { newBidder } from 'src/adapters/bidderFactory.js';
-
 
 const CSR_ENDPOINT = 'https://csr.onet.pl/_s/csr-006/csr.json?';
 
@@ -66,16 +64,12 @@ describe('rasBidAdapter', function () {
       }
     };
     it('should parse bids to request', function () {
-      sinon.stub(utils, 'deepAccess').callsFake((bidderRequest, path) => {
-        if (path === 'gdprConsent.gdprApplies') {
-          return true;
-        } else if (path === 'gdprConsent.consentString') {
-          return 'some-consent-string';
+      const requests = spec.buildRequests([bid], {
+        'gdprConsent': {
+          'gdprApplies': true,
+          'consentString': 'some-consent-string'
         }
-        return undefined;
       });
-
-      const requests = spec.buildRequests([bid]);
       expect(requests[0].url).to.have.string(CSR_ENDPOINT);
       expect(requests[0].url).to.have.string('slot0=test');
       expect(requests[0].url).to.have.string('id0=1');
@@ -88,6 +82,13 @@ describe('rasBidAdapter', function () {
       expect(requests[0].url).to.have.string('bid_rate=1');
       expect(requests[0].url).to.have.string('gdpr_applies=true');
       expect(requests[0].url).to.have.string('euconsent=some-consent-string');
+    });
+    it('should return empty consent string when undefined', function () {
+      const requests = spec.buildRequests([bid]);
+      expect(requests[0].url).to.have.string('gdpr_applies=undefined');
+      const empty1 = requests[0].url.search('euconsent=&') >= 0;
+      const empty2 = requests[0].url.endsWith('euconsent=');
+      expect(empty1 || empty2).to.be.true;
     });
     it('should parse bids to request from pageContext', function () {
       const bidCopy = { ...bid, pageContext: { 'dr': 'test.pl', keyValues: { seg_ab: 10 } } };

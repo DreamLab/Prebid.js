@@ -64,7 +64,12 @@ describe('rasBidAdapter', function () {
       }
     };
     it('should parse bids to request', function () {
-      const requests = spec.buildRequests([bid]);
+      const requests = spec.buildRequests([bid], {
+        'gdprConsent': {
+          'gdprApplies': true,
+          'consentString': 'some-consent-string'
+        }
+      });
       expect(requests[0].url).to.have.string(CSR_ENDPOINT);
       expect(requests[0].url).to.have.string('slot0=test');
       expect(requests[0].url).to.have.string('id0=1');
@@ -75,6 +80,15 @@ describe('rasBidAdapter', function () {
       expect(requests[0].url).to.have.string('systems=das');
       expect(requests[0].url).to.have.string('ems_url=1');
       expect(requests[0].url).to.have.string('bid_rate=1');
+      expect(requests[0].url).to.have.string('gdpr_applies=true');
+      expect(requests[0].url).to.have.string('euconsent=some-consent-string');
+    });
+    it('should return empty consent string when undefined', function () {
+      const requests = spec.buildRequests([bid]);
+      expect(requests[0].url).to.have.string('gdpr_applies=undefined');
+      const empty1 = requests[0].url.search('euconsent=&') >= 0;
+      const empty2 = requests[0].url.endsWith('euconsent=');
+      expect(empty1 || empty2).to.be.true;
     });
     it('should parse bids to request from pageContext', function () {
       const bidCopy = { ...bid, pageContext: { 'dr': 'test.pl', keyValues: { seg_ab: 10 } } };

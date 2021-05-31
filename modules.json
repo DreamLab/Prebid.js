@@ -1,0 +1,21 @@
+[
+  "consentManagement",
+  "rubiconBidAdapter",
+  "appnexusBidAdapter",
+  "openxBidAdapter",
+  "ixBidAdapter",
+  "adformBidAdapter",
+  "pubmaticBidAdapter",
+  "audienceNetworkBidAdapter",
+  "criteoBidAdapter",
+  "rtbhouseBidAdapter",
+  "adomikAnalyticsAdapter",
+  "categoryTranslation",
+  "dfpAdServerVideo",
+  "smartadserverBidAdapter",
+  "prebidServerBidAdapter",
+  "rasAnalyticsAdapter",
+  "rasBidAdapter",
+  "userId",
+  "id5IdSystem"
+]

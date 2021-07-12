@@ -4,6 +4,7 @@ import { isEmpty, getAdUnitSizes, parseSizesInput, deepAccess } from '../src/uti
 
 const BIDDER_CODE = 'ringieraxelspringer';
 const ENDPOINT_URL = 'https://csr.onet.pl/_s/csr-006/csr.json?';
+const VERSION = '1.0';
 
 function parseParams(params) {
   const newParams = {};
@@ -58,6 +59,7 @@ const getContextParams = (bidRequests) => {
     area: params.area,
     cre_format: 'html',
     systems: 'das',
+    kvprver: VERSION,
     ems_url: 1,
     bid_rate: 1,
     ...parseParams(params)

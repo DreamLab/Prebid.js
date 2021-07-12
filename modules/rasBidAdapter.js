@@ -59,7 +59,7 @@ const getContextParams = (bidRequests) => {
     area: params.area,
     cre_format: 'html',
     systems: 'das',
-    pr_ver: VERSION,
+    kvprver: VERSION,
     ems_url: 1,
     bid_rate: 1,
     ...parseParams(params)

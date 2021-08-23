@@ -108,7 +108,7 @@ export const spec = {
     const gdprQuery = getGdprParams(bidderRequest);
     const bidIds = bidRequests.map((bid) => ({ slot: bid.params.slot, bidId: bid.bidId }));
     return [{
-      method: 'POST',
+      method: 'GET',
       url: ENDPOINT_URL + contextQuery + slotsQuery + gdprQuery,
       bidIds: bidIds
     }];

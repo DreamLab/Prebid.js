@@ -15,6 +15,9 @@ function parseParams(params) {
   if (pageContext.dr) {
     newParams.dr = pageContext.dr
   }
+  if (pageContext.dv) {
+    newParams.DV = pageContext.dv
+  }
   if (pageContext.keyWords && Array.isArray(pageContext.keyWords)) {
     newParams.kwrd = pageContext.keyWords.join('+')
   }

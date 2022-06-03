@@ -1,33 +1,48 @@
 # Overview
 
-Module Name: RingierAxelSpringer Bidder Adapter
+```
+Module Name: Ringier Axel Springer Bidder Adapter
 Module Type: Bidder Adapter
-Maintainer: adp-support@ringieraxelspringer.pl
+Maintainer: support@ringpublishing.com
+```
 
 # Description
 
-Module that connects to RingerAxelSpringer demand sources.
+Module that connects to Ringer Axel Springer demand sources.
 Only banner format is supported.
 
 # Test Parameters
 ```js
-var adUnits = [
-  {
-    code: 'test-div-ad',
-    mediaTypes: {
-      banner: {
-        sizes: [[300, 250], [300,600]]
-      }
-    },
-    bids: [{
-      bidder: 'ringieraxelspringer',
-      params: {
-        area: 'NOWASG',
-        site: 'GLOWNA',
-        network: '1746213',
-        slot: 'top'
-      }
-    }]
-  }
-];
+var adUnits = [{
+  code: 'test-div-ad',
+  mediaTypes: {
+    banner: {
+      sizes: [[300, 250], [300, 600]]
+    }
+  },
+  bids: [{
+    bidder: 'ringieraxelspringer',
+    params: {
+      network: '4178463',
+      site: 'test',
+      area: 'areatest',
+      slot: 'slot'
+    }
+  }]
+}];
 ```
+
+# Parameters
+
+| Name | Scope | Type | Description | Example
+| --- | --- | --- | --- | ---
+| network | required | String | Specific identifier provided by RAS | `"4178463"`
+| site | required | String | Specific identifier name (case-insensitive) that is associated with this ad unit and provided by RAS | `"example_com"`
+| area | required | String | Ad unit category name; only case-insensitive alphanumeric with underscores and hyphens are allowed | `"sport"`
+| slot | required | String | Ad unit placement name (case-insensitive) provided by RAS | `"slot"`
+| pageContext | optional | Object | Web page context data | `{}`
+| pageContext.dr | optional | String | Document referrer URL address | `"https://example.com/"`
+| pageContext.du | optional | String | Document URL address | `"https://example.com/sport/football/article.html?id=1"`
+| pageContext.dv | optional | String | Document virtual address as slash-separated path that may consist of any number of parts (case-insensitive alphanumeric with underscores and hyphens); first part should be the same as `site` value and second as `area` value; next parts may reflect website navigation | `"example_com/sport/football"`
+| pageContext.keyWords | optional | String[] | List of keywords associated with this ad unit; only case-insensitive alphanumeric with underscores and hyphens are allowed | `["euro", "lewandowski"]`
+| pageContext.keyValues | optional | Object | Key-values associated with this ad unit (case-insensitive); key name should not start with digit and not include whitespaces; following characters are not allowed as key name or key value: `" ' = ! + # * ~ ; ^ ( ) < > [ ] & @` | `{"country": "poland", "birth": 1988}`

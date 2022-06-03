@@ -1,9 +1,21 @@
 # Overview
 
-Module Name: Ras Analytics Adapter
+Module Name: Ringier Axel Springer Analytics Adapter
+
 Module Type: Analytics Adapter
-Maintainer: adp-support@ringieraxelspringer.pl
+
+Maintainer: [tech.ringieraxelspringer.com](https://tech.ringieraxelspringer.com)
 
 # Description
 
-Analytics adapter for ringieraxelspringer.com. Contact adp-support@ringieraxelspringer.pl for information.
+Analytics adapter for Ringier Axel Springer. 
+
+Contact support@ringpublishing.com for information.
+
+# Usage
+
+```js
+pbjs.enableAnalytics({
+  provider: 'ringieraxelspringer'
+})
+```

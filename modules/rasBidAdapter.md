@@ -21,7 +21,7 @@ var adUnits = [{
     }
   },
   bids: [{
-    bidder: 'ringieraxelspringer',
+    bidder: 'ras',
     params: {
       network: '4178463',
       site: 'test',

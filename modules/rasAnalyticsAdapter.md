@@ -16,6 +16,6 @@ Contact support@ringpublishing.com for information.
 
 ```js
 pbjs.enableAnalytics({
-  provider: 'ringieraxelspringer'
+  provider: 'ras'
 })
 ```

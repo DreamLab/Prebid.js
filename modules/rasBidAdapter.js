@@ -2,30 +2,46 @@ import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { BANNER } from '../src/mediaTypes.js';
 import { isEmpty, getAdUnitSizes, parseSizesInput, deepAccess } from '../src/utils.js';
 
-const BIDDER_CODE = 'ringieraxelspringer';
-const ENDPOINT_URL = 'https://csr.onet.pl/_s/csr-006/csr.json?';
+const BIDDER_CODE = 'ras';
 const VERSION = '1.0';
 
-function parseParams(params) {
+const getEndpoint = (network) => `https://csr.onet.pl/${encodeURIComponent(network)}/csr-006/csr.json?`;
+
+function parseParams(params, bidderRequest) {
   const newParams = {};
+  const du = deepAccess(bidderRequest, 'refererInfo.page');
+  const dr = deepAccess(bidderRequest, 'refererInfo.ref');
+
+  if (du) {
+    newParams.du = du;
+  }
+  if (dr) {
+    newParams.dr = dr;
+  }
   const pageContext = params.pageContext;
   if (!pageContext) {
-    return {};
+    return newParams;
+  }
+  if (pageContext.du) {
+    newParams.du = pageContext.du;
   }
   if (pageContext.dr) {
-    newParams.dr = pageContext.dr
+    newParams.dr = pageContext.dr;
   }
   if (pageContext.dv) {
-    newParams.DV = pageContext.dv
+    newParams.DV = pageContext.dv;
   }
   if (pageContext.keyWords && Array.isArray(pageContext.keyWords)) {
-    newParams.kwrd = pageContext.keyWords.join('+')
+    newParams.kwrd = pageContext.keyWords.join('+');
+  }
+  if (pageContext.capping) {
+    newParams.local_capping = pageContext.capping;
   }
   if (pageContext.keyValues && typeof pageContext.keyValues === 'object') {
     for (const param in pageContext.keyValues) {
       if (pageContext.keyValues.hasOwnProperty(param)) {
         const kvName = 'kv' + param;
-        newParams[kvName] = pageContext.keyValues[param]
+        newParams[kvName] = pageContext.keyValues[param];
       }
     }
   }
@@ -45,7 +61,7 @@ const buildBid = (ad) => {
     creativeId: ad.adid ? parseInt(ad.adid.split(',')[2], 10) : 0,
     netRevenue: true,
     currency: ad.currency || 'USD',
-    dealId: ad.id_3 || 0,
+    dealId: null,
     meta: {
       mediaType: BANNER
     },
@@ -53,11 +69,10 @@ const buildBid = (ad) => {
   };
 };
 
-const getContextParams = (bidRequests) => {
+const getContextParams = (bidRequests, bidderRequest) => {
   const bid = bidRequests[0];
   const { params } = bid;
   const requestParams = {
-    nid: params.network,
     site: params.site,
     area: params.area,
     cre_format: 'html',
@@ -65,9 +80,9 @@ const getContextParams = (bidRequests) => {
     kvprver: VERSION,
     ems_url: 1,
     bid_rate: 1,
-    ...parseParams(params)
+    ...parseParams(params, bidderRequest)
   };
-  return Object.keys(requestParams).map((key) => key + '=' + encodeURIComponent(requestParams[key])).join('&');
+  return Object.keys(requestParams).map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(requestParams[key])).join('&');
 };
 
 const getSlots = (bidRequests) => {
@@ -75,10 +90,11 @@ const getSlots = (bidRequests) => {
   const batchSize = bidRequests.length;
   for (let i = 0; i < batchSize; i++) {
     const adunit = bidRequests[i];
-    const { slot } = adunit.params;
     const sizes = parseSizesInput(getAdUnitSizes(adunit)).join(',');
-    queryString += `&slot${i}=${slot}&id${i}=${adunit.bidId}`;
-    queryString += sizes.length ? `&iusizes${i}=${sizes}` : ''
+    queryString += `&slot${i}=${encodeURIComponent(adunit.params.slot)}&id${i}=${encodeURIComponent(adunit.bidId)}&composition${i}=CHILD`;
+    if (sizes.length) {
+      queryString += `&iusizes${i}=${encodeURIComponent(sizes)}`;
+    }
   }
   return queryString;
 };
@@ -86,10 +102,13 @@ const getSlots = (bidRequests) => {
 const getGdprParams = (bidderRequest) => {
   const gdprApplies = deepAccess(bidderRequest, 'gdprConsent.gdprApplies');
   let consentString = deepAccess(bidderRequest, 'gdprConsent.consentString');
-  if (consentString === undefined) {
-    consentString = '';
+  let queryString = '';
+  if (gdprApplies !== undefined) {
+    queryString += `&gdpr_applies=${encodeURIComponent(gdprApplies)}`;
   }
-  let queryString = `&gdpr_applies=${gdprApplies}&euconsent=${consentString}`;
+  if (consentString !== undefined) {
+    queryString += `&euconsent=${encodeURIComponent(consentString)}`;
+  }
   return queryString;
 };
 
@@ -102,17 +121,18 @@ export const spec = {
       return;
     }
     const { params } = bidRequest;
-    return Boolean(params.network && params.site && params.area);
+    return Boolean(params.network && params.site && params.area && params.slot);
   },
 
   buildRequests: function (bidRequests, bidderRequest) {
     const slotsQuery = getSlots(bidRequests);
-    const contextQuery = getContextParams(bidRequests);
+    const contextQuery = getContextParams(bidRequests, bidderRequest);
     const gdprQuery = getGdprParams(bidderRequest);
     const bidIds = bidRequests.map((bid) => ({ slot: bid.params.slot, bidId: bid.bidId }));
+    const network = bidRequests[0].params.network;
     return [{
       method: 'GET',
-      url: ENDPOINT_URL + contextQuery + slotsQuery + gdprQuery,
+      url: getEndpoint(network) + contextQuery + slotsQuery + gdprQuery,
       bidIds: bidIds
     }];
   },
@@ -123,33 +143,6 @@ export const spec = {
       return [];
     }
     return response.ads.map(buildBid).filter((bid) => !isEmpty(bid));
-  },
-
-  getUserSyncs: function (syncOptions, serverResponses) {
-    return [];
-  },
-  /**
-   * Register bidder specific code, which will execute if bidder timed out after an auction
-   * @param {data} Containing timeout specific data
-   */
-  onTimeout: function (data) {
-    // onTimeout
-  },
-
-  /**
-   * Register bidder specific code, which will execute if a bid from this bidder won the auction
-   * @param {Bid} The bid that won the auction
-   */
-  onBidWon: function (bid) {
-    // onBidWon
-  },
-
-  /**
-   * Register bidder specific code, which will execute when the adserver targeting has been set for a bid from this bidder
-   * @param {Bid} The bid of which the targeting has been set
-   */
-  onSetTargeting: function (bid) {
-    // onSetTargeting
   }
 };
 

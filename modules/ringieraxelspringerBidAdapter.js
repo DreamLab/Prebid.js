@@ -234,7 +234,7 @@ const buildBid = (ad, mediaType) => {
     height: ad.height || 0
   }
 
-  if (mediaType === 'native') {
+  if (ad.type === 'native') {
     data.meta = { mediaType: NATIVE };
     data.mediaType = NATIVE;
     data.native = parseNativeResponse(ad) || {};
@@ -268,18 +268,20 @@ const getSlots = (bidRequests) => {
     const adunit = bidRequests[i];
     const slotSequence = deepAccess(adunit, 'params.slotSequence');
     const creFormat = getAdUnitCreFormat(adunit);
-    const sizes = creFormat === 'native' ? 'fluid' : parseSizesInput(getAdUnitSizes(adunit)).join(',');
+    const sizes = parseSizesInput(getAdUnitSizes(adunit));
+
+    if (['multi', 'native'].includes(creFormat)) {
+      sizes.push('fluid');
+    }
 
     queryString += `&slot${i}=${encodeURIComponent(adunit.params.slot)}&id${i}=${encodeURIComponent(adunit.bidId)}&composition${i}=CHILD`;
 
-    if (creFormat === 'native') {
-      queryString += `&cre_format${i}=native`;
-    }
+    queryString += `&cre_format${i}=${creFormat}`;
 
-    queryString += `&kvhb_format${i}=${creFormat === 'native' ? 'native' : 'banner'}`;
+    queryString += `&kvhb_format${i}=${creFormat === 'html' ? 'banner' : creFormat}`;
 
     if (sizes) {
-      queryString += `&iusizes${i}=${encodeURIComponent(sizes)}`;
+      queryString += `&iusizes${i}=${encodeURIComponent(sizes.join(','))}`;
     }
 
     if (slotSequence !== undefined && slotSequence !== null) {
@@ -341,8 +343,12 @@ const getAdUnitCreFormat = (adUnit) => {
   let creFormat = 'html';
   let mediaTypes = Object.keys(adUnit.mediaTypes);
 
-  if (mediaTypes && mediaTypes.length === 1 && mediaTypes.includes('native')) {
-    creFormat = 'native';
+  if (mediaTypes) {
+    if (mediaTypes.length >= 2) {
+      creFormat = 'multi';
+    } else if (mediaTypes[0] === 'native') {
+      creFormat = 'native';
+    }
   }
 
   return creFormat;

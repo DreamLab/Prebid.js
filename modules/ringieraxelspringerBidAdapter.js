@@ -267,20 +267,21 @@ const getSlots = (bidRequests) => {
   for (let i = 0; i < batchSize; i++) {
     const adunit = bidRequests[i];
     const slotSequence = deepAccess(adunit, 'params.slotSequence');
-    const creFormat = getAdUnitCreFormat(adunit);
-    const sizes = parseSizesInput(getAdUnitSizes(adunit));
+    const creFormats = getAdUnitCreFormats(adunit);
+    const sizes = parseSizesInput(getAdUnitSizes(adunit))?.filter(Boolean);
 
-    if (['multi', 'native'].includes(creFormat)) {
+    if (creFormats.includes('native') && sizes?.indexOf('fluid') === -1) {
       sizes.push('fluid');
     }
 
     queryString += `&slot${i}=${encodeURIComponent(adunit.params.slot)}&id${i}=${encodeURIComponent(adunit.bidId)}&composition${i}=CHILD`;
 
-    queryString += `&cre_format${i}=${creFormat}`;
+    queryString += `&cre_format${i}=${encodeURIComponent(creFormats.join())}`;
 
-    queryString += `&kvhb_format${i}=${creFormat === 'html' ? 'banner' : creFormat}`;
+    // change 'html' format to 'banner'
+    queryString += `&kvhb_format${i}=${encodeURIComponent(creFormats.map(format => format === 'html' ? 'banner' : format).join())}`;
 
-    if (sizes) {
+    if (Array.isArray(sizes)) {
       queryString += `&iusizes${i}=${encodeURIComponent(sizes.join(','))}`;
     }
 
@@ -335,23 +336,24 @@ const parseAuctionConfigs = (serverResponse, bidRequest) => {
   }
 }
 
-const getAdUnitCreFormat = (adUnit) => {
+const getAdUnitCreFormats = (adUnit) => {
   if (!adUnit) {
     return;
   }
 
-  let creFormat = 'html';
-  let mediaTypes = Object.keys(adUnit.mediaTypes);
+  let creFormats = [];
 
-  if (mediaTypes) {
-    if (mediaTypes.length >= 2) {
-      creFormat = 'multi';
-    } else if (mediaTypes[0] === 'native') {
-      creFormat = 'native';
+  if (adUnit.mediaTypes) {
+    if (adUnit.mediaTypes.banner) {
+      creFormats.push('html');
+    }
+
+    if (adUnit.mediaTypes.native || adUnit.nativeParams) {
+      creFormats.push('native');
     }
   }
 
-  return creFormat;
+  return creFormats;
 }
 
 export const spec = {

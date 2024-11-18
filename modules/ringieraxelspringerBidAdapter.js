@@ -66,41 +66,6 @@ function parseParams(params, bidderRequest) {
   return newParams;
 }
 
-/**
- * @param url string
- * @param type number // 1 - img, 2 - js
- * @returns an object { event: 1, method: 1 or 2, url: 'string' }
- */
-function prepareItemEventtrackers(url, type) {
-  return {
-    event: 1,
-    method: type,
-    url: url
-  };
-}
-
-function prepareEventtrackers(emsLink, imp, impression, impression1, impressionJs1) {
-  const eventtrackers = [prepareItemEventtrackers(emsLink, 1)];
-
-  if (imp) {
-    eventtrackers.push(prepareItemEventtrackers(imp, 1));
-  }
-
-  if (impression) {
-    eventtrackers.push(prepareItemEventtrackers(impression, 1));
-  }
-
-  if (impression1) {
-    eventtrackers.push(prepareItemEventtrackers(impression1, 1));
-  }
-
-  if (impressionJs1) {
-    eventtrackers.push(prepareItemEventtrackers(impressionJs1, 2));
-  }
-
-  return eventtrackers;
-}
-
 function parseNativeResponse(ad) {
   if (!(ad.data?.fields && ad.data?.meta)) {
     return false;
@@ -130,9 +95,9 @@ function parseNativeResponse(ad) {
     sponsoredBy: deepAccess(ad, 'data.meta.advertiser_name', null) || '',
   };
 
-  nativeResponse.impressionTrackers = [emsLink, imp, impression, impression1];
-  nativeResponse.javascriptTrackers = [impressionJs1].map(url => url ? `<script async src=${url}></script>` : null);
-  nativeResponse.clickTrackers = [thirdPartyClickTracker2];
+  nativeResponse.impressionTrackers = [emsLink, imp, impression, impression1].filter(Boolean);
+  nativeResponse.javascriptTrackers = [impressionJs1].map(url => url ? `<script async src=${url}></script>` : null).filter(Boolean);
+  nativeResponse.clickTrackers = [thirdPartyClickTracker2].filter(Boolean);
 
   if (dsaurl) {
     nativeResponse.privacyLink = dsaurl;

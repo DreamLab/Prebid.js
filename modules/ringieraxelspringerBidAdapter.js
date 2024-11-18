@@ -101,89 +101,14 @@ function prepareEventtrackers(emsLink, imp, impression, impression1, impressionJ
   return eventtrackers;
 }
 
-function parseOrtbResponse(ad) {
-  if (!(ad.data?.fields && ad.data?.meta)) {
-    return false;
-  }
-
-  const { image, Image, title, url, Headline, Thirdpartyclicktracker, thirdPartyClickTracker2, imp, impression, impression1, impressionJs1, partner_logo: partnerLogo, adInfo, body } = ad.data.fields;
-  const { dsaurl, height, width, adclick } = ad.data.meta;
-  const emsLink = ad.ems_link;
-  const link = adclick + (url || Thirdpartyclicktracker);
-  const eventtrackers = prepareEventtrackers(emsLink, imp, impression, impression1, impressionJs1);
-  const clicktrackers = thirdPartyClickTracker2 ? [thirdPartyClickTracker2] : [];
-
-  const ortb = {
-    ver: '1.2',
-    assets: [
-      {
-        id: 0,
-        data: {
-          value: body || '',
-          type: 2
-        },
-      },
-      {
-        id: 1,
-        data: {
-          value: adInfo || '',
-          // Body2 type
-          type: 10
-        },
-      },
-      {
-        id: 3,
-        img: {
-          type: 1,
-          url: partnerLogo || '',
-          w: width,
-          h: height
-        }
-      },
-      {
-        id: 4,
-        img: {
-          type: 3,
-          url: image || Image || '',
-          w: width,
-          h: height
-        }
-      },
-      {
-        id: 5,
-        data: {
-          value: deepAccess(ad, 'data.meta.advertiser_name', null),
-          type: 1
-        }
-      },
-      {
-        id: 6,
-        title: {
-          text: title || Headline || ''
-        }
-      },
-    ],
-    link: {
-      url: link,
-      clicktrackers
-    },
-    eventtrackers
-  };
-
-  if (dsaurl) {
-    ortb.privacy = dsaurl
-  }
-
-  return ortb
-}
-
 function parseNativeResponse(ad) {
   if (!(ad.data?.fields && ad.data?.meta)) {
     return false;
   }
 
-  const { image, Image, title, leadtext, url, Calltoaction, Body, Headline, Thirdpartyclicktracker, adInfo, partner_logo: partnerLogo } = ad.data.fields;
+  const { thirdPartyClickTracker2, imp, impression, impression1, impressionJs1, image, Image, title, leadtext, url, Calltoaction, Body, Headline, Thirdpartyclicktracker, adInfo, partner_logo: partnerLogo } = ad.data.fields;
   const { dsaurl, height, width, adclick } = ad.data.meta;
+  const emsLink = ad.ems_link;
   const link = adclick + (url || Thirdpartyclicktracker);
   const nativeResponse = {
     sendTargetingKeys: false,
@@ -203,8 +128,11 @@ function parseNativeResponse(ad) {
     body: leadtext || Body || '',
     body2: adInfo || '',
     sponsoredBy: deepAccess(ad, 'data.meta.advertiser_name', null) || '',
-    ortb: parseOrtbResponse(ad)
   };
+
+  nativeResponse.impressionTrackers = [emsLink, imp, impression, impression1];
+  nativeResponse.javascriptTrackers = [impressionJs1].map(url => url ? `<script async src=${url}></script>` : null);
+  nativeResponse.clickTrackers = [thirdPartyClickTracker2];
 
   if (dsaurl) {
     nativeResponse.privacyLink = dsaurl;

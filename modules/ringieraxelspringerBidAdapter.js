@@ -241,7 +241,7 @@ const getAdUnitCreFormats = (adUnit) => {
       creFormats.push('html');
     }
 
-    if (adUnit.mediaTypes.native || adUnit.nativeParams) {
+    if (adUnit.mediaTypes.native) {
       creFormats.push('native');
     }
   }

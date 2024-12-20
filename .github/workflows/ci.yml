@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: prebidjs
-          path: build
+          path: build/dist/prebid.js
       - name: Upload version
         uses: actions/upload-artifact@v4
         with:
@@ -45,3 +45,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: prebidjs
+      - name: Download version
+        uses: actions/download-artifact@v4
+        with:
+          name: version
+      - name: Prebid
+        run: ls -la
+      - name: Deploy
+        run: |
+          version="$(cat version/version.txt)"
+          mkdir "${version}"
+          cp prebid.js "${version}"/
+          release="${version}_$(date +"%Y%m%d%H%M%S")"
+          echo "Uploading Prebid.js ver:${version} to OCDN"
+          echo -e "\e[32mRelease: ${release}\e[0m"

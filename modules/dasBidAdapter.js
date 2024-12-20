@@ -5,7 +5,10 @@ import { BANNER } from '../src/mediaTypes.js';
 import { deepAccess } from '../src/utils.js';
 
 const BIDDER_CODE = 'das';
-const ENDPOINT = 'https://csr.onet.pl/bid';
+
+const getEndpoint = (network) => {
+  return `https://csr.onet.pl/${encodeURIComponent(network)}/bid`;
+};
 
 function parseParams(params, bidderRequest) {
   const customParams = {};
@@ -214,9 +217,10 @@ export const spec = {
   },
 
   buildRequests: function (validBidRequests, bidderRequest) {
+    const data = buildOpenRTBRequest(validBidRequests, bidderRequest);
     return {
       method: 'POST',
-      url: ENDPOINT,
+      url: getEndpoint(data.ext.network),
       data: buildOpenRTBRequest(validBidRequests, bidderRequest),
       options: {
         withCredentials: true,

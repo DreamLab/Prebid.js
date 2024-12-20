@@ -29,12 +29,12 @@ jobs:
         run: cat package.json | grep -e "\"version.*\"" | grep -oP "\d\.\d+\.\d+" > version.txt
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: prebidjs
           path: build
       - name: Upload version
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: version
           path: version.txt

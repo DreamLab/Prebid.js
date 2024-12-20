@@ -213,7 +213,10 @@ export const spec = {
   supportedMediaTypes: [BANNER],
 
   isBidRequestValid: function (bid) {
-    return !!(bid.params?.site && bid.params?.area && bid.params?.slot);
+    if (!bid || !bid.params) {
+      return false;
+    }
+    return !!(bid.params?.network && bid.params?.site && bid.params?.area && bid.params?.slot);
   },
 
   buildRequests: function (validBidRequests, bidderRequest) {

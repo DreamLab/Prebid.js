@@ -40,6 +40,7 @@ jobs:
           path: version.txt
   deploy:
     needs: build
+    if: github.ref == 'refs/heads/dreamlab-master'
     runs-on: ubuntu-latest
 
     steps:
@@ -51,10 +52,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: version
-      - name: Prebid
-        run: ls -la
       - name: Deploy
-        if: github.ref == 'refs/heads/dreamlab-master'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

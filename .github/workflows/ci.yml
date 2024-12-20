@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - dreamlab-master
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install && npm install -g gulp
+
+      - name: Run tests
+        run: node_modules/.bin/gulp test --file test/spec/modules/ringieraxelspringerBidAdapter_spec.js,test/spec/modules/dasBidAdapter_spec.js
+
+      - name: build
+        run: node_modules/.bin/gulp build --modules=modules.json
+
+      - name: version
+        run: cat package.json | grep -e "\"version.*\"" | grep -oP "\d\.\d+\.\d+" > version.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: prebidjs
+          path: build
+      - name: Upload version
+        uses: actions/upload-artifact@v2
+        with:
+          name: version
+          path: version.txt
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4

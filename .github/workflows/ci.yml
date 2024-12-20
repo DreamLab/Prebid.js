@@ -8,9 +8,6 @@ on:
     branches:
       - "*"
 
-env:
-  REGION: eu-central-1
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -57,6 +54,7 @@ jobs:
       - name: Prebid
         run: ls -la
       - name: Deploy
+        # if: github.ref == 'refs/heads/dreamlab-master'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -68,3 +66,4 @@ jobs:
           release="${version}_$(date +"%Y%m%d%H%M%S")"
           echo "Uploading Prebid.js ver:${version} to OCDN"
           echo -e "\e[32mRelease: ${release}\e[0m"
+          aws s3 sync "${version}" s3://${BUCKET}/prebid/prod/${release}/ --region ocdn --endpoint "https://ocdn.eu"

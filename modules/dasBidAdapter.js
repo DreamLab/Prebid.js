@@ -197,7 +197,7 @@ function interpretResponse(serverResponse) {
         },
       };
       // first implementation only supports banner
-      if (bid.mtype == 'banner') {
+      if (bid.mtype === 1) {
         bidResponse.mediaType = BANNER;
         bidResponse.ad = bid.adm;
         bidResponses.push(bidResponse);

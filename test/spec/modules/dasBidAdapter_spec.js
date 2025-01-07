@@ -185,7 +185,7 @@ describe('dasBidAdapter', function () {
             h: 250,
             adm: '<creative>',
             crid: 'crid123',
-            mtype: 'banner',
+            mtype: 1,
             adomain: ['advertiser.com']
           }]
         }],
@@ -207,7 +207,7 @@ describe('dasBidAdapter', function () {
         creativeId: 'crid123',
         netRevenue: true,
         ttl: 300,
-        mediaType: 'banner'
+        mediaType: 1
       });
       expect(bidResponses[0].meta.advertiserDomains).to.deep.equal(['advertiser.com']);
     });

@@ -207,7 +207,7 @@ describe('dasBidAdapter', function () {
         creativeId: 'crid123',
         netRevenue: true,
         ttl: 300,
-        mediaType: 1
+        mediaType: 'banner'
       });
       expect(bidResponses[0].meta.advertiserDomains).to.deep.equal(['advertiser.com']);
     });

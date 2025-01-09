@@ -224,7 +224,7 @@ export const spec = {
     return {
       method: 'POST',
       url: getEndpoint(data.ext.network),
-      data: buildOpenRTBRequest(validBidRequests, bidderRequest),
+      data,
       options: {
         withCredentials: true,
         crossOrigin: true,

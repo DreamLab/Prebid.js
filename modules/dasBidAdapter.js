@@ -43,7 +43,7 @@ function parseParams(params, bidderRequest) {
       customParams.dr = pageContext.dr;
     }
 
-    // Document version
+    // Document virtual address
     if (pageContext.dv) {
       customParams.DV = pageContext.dv;
     }

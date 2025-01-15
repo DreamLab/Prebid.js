@@ -193,7 +193,7 @@ function interpretResponse(serverResponse) {
         creativeId: bid.crid || bid.id,
         netRevenue: true,
         dealId: bid.dealid || null,
-        actgMatch: bid.ext.actgMatch,
+        actgMatch: bid.ext?.actgMatch,
         ttl: 300,
         meta: {
           advertiserDomains: bid.adomain || [],

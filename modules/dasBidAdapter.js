@@ -114,6 +114,9 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
       id: bid.bidId,
       tagid: bid.params.slot,
       secure: 1,
+      ext: {
+        pos: bid.params.slotSequence || 0,
+      },
     };
 
     if (bid.mediaTypes?.banner) {
@@ -122,7 +125,6 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
           w: size[0],
           h: size[1],
         })),
-        pos: bid.params.slotSequence || 0,
       };
     }
 
@@ -138,6 +140,8 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
       ref: customParams.dr,
       ext: {
         area: customParams.area,
+        kwrd: customParams.kwrd,
+        dv: customParams.DV
       },
       ...bidderRequest.ortb2.site,
     },
@@ -149,7 +153,7 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
     },
     ext: {
       network: customParams.network,
-      key_values: keyValues,
+      keyvalues: keyValues,
     },
     at: 1,
     tmax: bidderRequest.timeout,
@@ -157,14 +161,11 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
 
   if (bidderRequest.gdprConsent) {
     request.user = {
-      consent: bidderRequest.gdprConsent.consentString,
       ext: {
         gdpr: bidderRequest.gdprConsent.gdprApplies,
-        dsa:
-          customParams.dsainfo !== undefined
-            ? { required: customParams.dsainfo }
-            : undefined,
+        dsa: customParams.dsainfo,
         npa: getNpaFromPubConsent(customParams.pubconsent),
+        localcapping: customParams.local_capping,
         ...request.user.ext,
       },
     };
@@ -216,7 +217,12 @@ export const spec = {
     if (!bid || !bid.params) {
       return false;
     }
-    return !!(bid.params?.network && bid.params?.site && bid.params?.area && bid.params?.slot);
+    return !!(
+      bid.params?.network &&
+      bid.params?.site &&
+      bid.params?.area &&
+      bid.params?.slot
+    );
   },
 
   buildRequests: function (validBidRequests, bidderRequest) {

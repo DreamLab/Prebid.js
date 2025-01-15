@@ -43,7 +43,7 @@ function parseParams(params, bidderRequest) {
       customParams.dr = pageContext.dr;
     }
 
-    // Document version
+    // Document virtual address
     if (pageContext.dv) {
       customParams.DV = pageContext.dv;
     }
@@ -230,7 +230,7 @@ export const spec = {
     return {
       method: 'POST',
       url: getEndpoint(data.ext.network),
-      data: buildOpenRTBRequest(validBidRequests, bidderRequest),
+      data,
       options: {
         withCredentials: true,
         crossOrigin: true,

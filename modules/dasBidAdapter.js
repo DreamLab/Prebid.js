@@ -156,19 +156,21 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
       keyvalues: keyValues,
     },
     at: 1,
-    tmax: bidderRequest.timeout,
+    tmax: bidderRequest.timeout
   };
 
   if (bidderRequest.gdprConsent) {
     request.user = {
       ext: {
-        gdpr: bidderRequest.gdprConsent.gdprApplies,
         dsa: customParams.dsainfo,
         npa: getNpaFromPubConsent(customParams.pubconsent),
         localcapping: customParams.local_capping,
         ...request.user.ext,
       },
     };
+    request.regs = {
+      gdpr: bidderRequest.gdprConsent.gdprApplies,
+    }
   }
 
   return request;

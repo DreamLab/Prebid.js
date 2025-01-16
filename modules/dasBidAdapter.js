@@ -114,10 +114,10 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
       id: bid.bidId,
       tagid: bid.params.slot,
       secure: 1,
-      ext: {
-        pos: bid.params.slotSequence || 0,
-      },
     };
+    if (bid.params.slotSequence) {
+      imp.ext.pos = bid.params.slotSequence
+    }
 
     if (bid.mediaTypes?.banner) {
       imp.banner = {

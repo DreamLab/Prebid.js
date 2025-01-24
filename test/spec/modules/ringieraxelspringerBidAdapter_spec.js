@@ -452,7 +452,7 @@ describe('ringieraxelspringerBidAdapter', function () {
               adInfo: 'REKLAMA',
               click: '//link.url',
               imp: '//imp.url',
-              ThirdPartyClickTracker: '//thirdPartyClickTracker.url'
+              Thirdpartyclicktracker: '//thirdPartyClickTracker.url'
             },
             meta: {
               slot: 'nativestd',

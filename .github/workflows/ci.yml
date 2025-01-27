@@ -59,6 +59,7 @@ jobs:
           BUCKET: ${{ secrets.BUCKET }}
         run: |
           version="$(cat version.txt)"
+          cat /etc/os-release
           echo "Zainstalowana wersja AWS CLI: $(aws --version)"
           mkdir "${version}"
           cp prebid.js "${version}"/

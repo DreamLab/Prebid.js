@@ -66,4 +66,3 @@ jobs:
           echo -e "\e[32mRelease: ${release}\e[0m"
           aws s3 sync "${version}" s3://${BUCKET}/prebid/prod/${release}/ --region ocdn --endpoint "https://ocdn.eu"
 
-

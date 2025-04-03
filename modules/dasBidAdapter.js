@@ -236,9 +236,11 @@ export const spec = {
 
   buildRequests: function (validBidRequests, bidderRequest) {
     const data = buildOpenRTBRequest(validBidRequests, bidderRequest);
+    const jsonData = encodeURIComponent(JSON.stringify(data));
+
     return {
-      method: 'POST',
-      url: getEndpoint(data.ext.network),
+      method: 'GET',
+      url: `${getEndpoint(data.ext.network)}?data=${jsonData}`,
       data,
       options: {
         withCredentials: true,

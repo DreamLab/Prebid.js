@@ -72,7 +72,7 @@ function parseNativeResponse(ad) {
   }
 
   const { click, Thirdpartyimpressiontracker, Thirdpartyimpressiontracker2, thirdPartyClickTracker2, imp, impression, impression1, impressionJs1, image, Image, title, leadtext, url, Calltoaction, Body, Headline, Thirdpartyclicktracker, adInfo, partner_logo: partnerLogo } = ad.data.fields;
-  
+
   const { dsaurl, height, width, adclick } = ad.data.meta;
   const emsLink = ad.ems_link;
   const link = adclick + (url || click);
@@ -266,7 +266,7 @@ export const spec = {
     const slotsQuery = getSlots(bidRequests);
     const contextQuery = getContextParams(bidRequests, bidderRequest);
     const gdprQuery = getGdprParams(bidderRequest);
-    const fledgeEligible = Boolean(bidderRequest && bidderRequest.fledgeEnabled);
+    const fledgeEligible = Boolean(bidderRequest?.paapi?.enabled);
     const network = bidRequests[0].params.network;
     const bidIds = bidRequests.map((bid) => ({
       slot: bid.params.slot,
@@ -294,7 +294,7 @@ export const spec = {
 
     if (fledgeAuctionConfigs) {
       // Return a tuple of bids and auctionConfigs. It is possible that bids could be null.
-      return {bids, fledgeAuctionConfigs};
+      return {bids, paapi: fledgeAuctionConfigs};
     } else {
       return bids;
     }

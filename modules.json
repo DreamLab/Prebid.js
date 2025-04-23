@@ -31,5 +31,6 @@
   "dasBidAdapter",
   "paapi",
   "paapiForGpt",
-  "dfpAdServerVideo"
+  "dfpAdServerVideo",
+  "criteoIdSystem"
 ]

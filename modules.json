@@ -32,5 +32,6 @@
   "paapi",
   "paapiForGpt",
   "dfpAdServerVideo",
-  "criteoIdSystem"
+  "criteoIdSystem",
+  "connectadBidAdapter"
 ]

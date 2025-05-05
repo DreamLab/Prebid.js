@@ -8,6 +8,7 @@ import {
 import { getAllOrtbKeywords } from '../libraries/keywords/keywords.js';
 import { getAdUnitSizes } from '../libraries/sizeUtils/sizeUtils.js';
 import { parseNativeResponse } from '../libraries/raspUtils/raspUtils.js';
+import { BO_CSR_ONET } from '../libraries/paapiTools/buyerOrigins.js';
 
 const BIDDER_CODE = 'ringieraxelspringer';
 const VERSION = '1.0';
@@ -171,9 +172,9 @@ const parseAuctionConfigs = (serverResponse, bidRequest) => {
     auctionConfigs.push({
       'bidId': bid.bidId,
       'config': {
-        'seller': 'https://csr.onet.pl',
-        'decisionLogicUrl': `https://csr.onet.pl/${encodeURIComponent(bid.params.network)}/v1/protected-audience-api/decision-logic.js`,
-        'interestGroupBuyers': ['https://csr.onet.pl'],
+        'seller': BO_CSR_ONET,
+        'decisionLogicUrl': `${BO_CSR_ONET}/${encodeURIComponent(bid.params.network)}/v1/protected-audience-api/decision-logic.js`,
+        'interestGroupBuyers': [ BO_CSR_ONET ],
         'auctionSignals': {
           'params': bid.params,
           'sizes': bid.sizes,
@@ -226,7 +227,7 @@ export const spec = {
     const slotsQuery = getSlots(bidRequests);
     const contextQuery = getContextParams(bidRequests, bidderRequest);
     const gdprQuery = getGdprParams(bidderRequest);
-    const fledgeEligible = Boolean(bidderRequest && bidderRequest.fledgeEnabled);
+    const fledgeEligible = Boolean(bidderRequest?.paapi?.enabled);
     const network = bidRequests[0].params.network;
     const bidIds = bidRequests.map((bid) => ({
       slot: bid.params.slot,
@@ -254,7 +255,7 @@ export const spec = {
 
     if (fledgeAuctionConfigs) {
       // Return a tuple of bids and auctionConfigs. It is possible that bids could be null.
-      return {bids, fledgeAuctionConfigs};
+      return {bids, paapi: fledgeAuctionConfigs};
     } else {
       return bids;
     }

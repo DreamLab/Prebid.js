@@ -247,7 +247,7 @@ function interpretResponse(serverResponse) {
 
 export const spec = {
   code: BIDDER_CODE,
-  supportedMediaTypes: [BANNER],
+  supportedMediaTypes: [BANNER, NATIVE],
 
   isBidRequestValid: function (bid) {
     if (!bid || !bid.params) {

@@ -132,8 +132,7 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
     }
     if (bid.mediaTypes?.native) {
       imp.native = {
-        // TODO: request: JSON.stringify(bid.mediaTypes.native) is too large
-        request: JSON.stringify({}),
+        request: '{}',
         ver: '1.2',
       };
     }

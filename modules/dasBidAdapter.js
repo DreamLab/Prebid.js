@@ -178,6 +178,7 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
       ext: {
         npa: getNpaFromPubConsent(customParams.pubconsent),
         localcapping: customParams.local_capping,
+        localadpproduts: customParams.adp_products,
         ...request.user.ext,
       },
     };

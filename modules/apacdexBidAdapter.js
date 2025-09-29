@@ -43,7 +43,7 @@ export const spec = {
     let eids;
     let geo;
     let test;
-    let bids = [];
+    const bids = [];
 
     test = config.getConfig('debug');
 
@@ -64,12 +64,12 @@ export const spec = {
       }
 
       var targetKey = 0;
-      if (bySlotTargetKey[bidReq.adUnitCode] != undefined) {
+      if (bySlotTargetKey[bidReq.adUnitCode] !== undefined && bySlotTargetKey[bidReq.adUnitCode] !== null) {
         targetKey = bySlotTargetKey[bidReq.adUnitCode];
       } else {
         var biggestSize = _getBiggestSize(bidReq.sizes);
         if (biggestSize) {
-          if (bySlotSizesCount[biggestSize] != undefined) {
+          if (bySlotSizesCount[biggestSize] !== undefined && bySlotSizesCount[biggestSize] !== null) {
             bySlotSizesCount[biggestSize]++
             targetKey = bySlotSizesCount[biggestSize];
           } else {
@@ -81,7 +81,7 @@ export const spec = {
       bySlotTargetKey[bidReq.adUnitCode] = targetKey;
       bidReq.targetKey = targetKey;
 
-      let bidFloor = getBidFloor(bidReq);
+      const bidFloor = getBidFloor(bidReq);
       if (bidFloor) {
         bidReq.bidFloor = bidFloor;
       }
@@ -260,19 +260,19 @@ function _getBiggestSize(sizes) {
 
 function _getDoNotTrack() {
   try {
-    if (window.top.doNotTrack && window.top.doNotTrack == '1') {
+    if (window.top.doNotTrack && window.top.doNotTrack === '1') {
       return 1;
     }
   } catch (e) { }
 
   try {
-    if (navigator.doNotTrack && (navigator.doNotTrack == 'yes' || navigator.doNotTrack == '1')) {
+    if (navigator.doNotTrack && (navigator.doNotTrack === 'yes' || navigator.doNotTrack === '1')) {
       return 1;
     }
   } catch (e) { }
 
   try {
-    if (navigator.msDoNotTrack && navigator.msDoNotTrack == '1') {
+    if (navigator.msDoNotTrack && navigator.msDoNotTrack === '1') {
       return 1;
     }
   } catch (e) { }
@@ -335,7 +335,7 @@ function getBidFloor(bid) {
     return (bid.params.floorPrice) ? bid.params.floorPrice : null;
   }
 
-  let floor = bid.getFloor({
+  const floor = bid.getFloor({
     currency: 'USD',
     mediaType: '*',
     size: '*'

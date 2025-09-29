@@ -6,7 +6,10 @@ import * as utils from 'src/utils.js';
 import { getStorageManager } from 'src/storageManager.js';
 import { getGlobal } from '../../../src/prebidGlobal.js';
 import {deepClone, getUnixTimestampFromNow} from 'src/utils.js';
-import { getWinDimensions } from '../../../src/utils';
+import { getWinDimensions } from '../../../src/utils.js';
+
+import {getGlobalVarName} from '../../../src/buildOptions.js';
+import {getExtraWinDimensions} from '../../../libraries/extraWinDimensions/extraWinDimensions.js';
 
 describe('adnuntiusBidAdapter', function () {
   const sandbox = sinon.createSandbox();
@@ -59,7 +62,8 @@ describe('adnuntiusBidAdapter', function () {
 
   function resetExpectedUrls() {
     const winDimensions = getWinDimensions();
-    screen = winDimensions.screen.availWidth + 'x' + winDimensions.screen.availHeight;
+    const extraDims = getExtraWinDimensions();
+    screen = extraDims.screen.availWidth + 'x' + extraDims.screen.availHeight;
     viewport = winDimensions.innerWidth + 'x' + winDimensions.innerHeight;
     ENDPOINT_URL_BASE = `${URL}${tzo}&format=prebid&pbv=${prebidVersion}&screen=${screen}&viewport=${viewport}`;
     ENDPOINT_URL = `${ENDPOINT_URL_BASE}&userId=${usi}`;
@@ -379,13 +383,13 @@ describe('adnuntiusBidAdapter', function () {
             'url': 'https://whatever.com'
           },
           'assets': [
-          {
-            'id': 1,
-            'required': 1,
-            'img': {
-              'url': 'http://something.com/something.png'
-            }
-          }]
+            {
+              'id': 1,
+              'required': 1,
+              'img': {
+                'url': 'http://something.com/something.png'
+              }
+            }]
         }
       },
       'matchedAdCount': 1,
@@ -884,9 +888,10 @@ describe('adnuntiusBidAdapter', function () {
   describe('buildRequests', function () {
     it('Test requests', function () {
       const winDimensions = getWinDimensions();
-      const screen = winDimensions.screen.availWidth + 'x' + winDimensions.screen.availHeight;
+      const extraDims = getExtraWinDimensions();
+      const screen = extraDims.screen.availWidth + 'x' + extraDims.screen.availHeight;
       const viewport = winDimensions.innerWidth + 'x' + winDimensions.innerHeight;
-      const prebidVersion = window.$$PREBID_GLOBAL$$.version;
+      const prebidVersion = window[getGlobalVarName()].version;
       const tzo = new Date().getTimezoneOffset();
       const ENDPOINT_URL = `https://ads.adnuntius.delivery/i?tzo=${tzo}&format=prebid&pbv=${prebidVersion}&screen=${screen}&viewport=${viewport}&userId=${usi}`;
 
@@ -1280,14 +1285,14 @@ describe('adnuntiusBidAdapter', function () {
 
   describe('user privacy', function () {
     it('should send GDPR Consent data if gdprApplies', function () {
-      let request = spec.buildRequests(bidderRequests, { gdprConsent: { gdprApplies: true, consentString: 'consentString' } });
+      const request = spec.buildRequests(bidderRequests, { gdprConsent: { gdprApplies: true, consentString: 'consentString' } });
       expect(request.length).to.equal(1);
       expect(request[0]).to.have.property('url');
       expectUrlsEqual(request[0].url, ENDPOINT_URL_CONSENT);
     });
 
     it('should not send GDPR Consent data if gdprApplies equals undefined', function () {
-      let request = spec.buildRequests(bidderRequests, { gdprConsent: { gdprApplies: undefined, consentString: 'consentString' } });
+      const request = spec.buildRequests(bidderRequests, { gdprConsent: { gdprApplies: undefined, consentString: 'consentString' } });
       expect(request.length).to.equal(1);
       expect(request[0]).to.have.property('url');
       expectUrlsEqual(request[0].url, ENDPOINT_URL);
@@ -1423,14 +1428,14 @@ describe('adnuntiusBidAdapter', function () {
 
   describe('user privacy', function () {
     it('should send GDPR Consent data if gdprApplies', function () {
-      let request = spec.buildRequests(bidderRequests, { gdprConsent: { gdprApplies: true, consentString: 'consentString' } });
+      const request = spec.buildRequests(bidderRequests, { gdprConsent: { gdprApplies: true, consentString: 'consentString' } });
       expect(request.length).to.equal(1);
       expect(request[0]).to.have.property('url');
       expectUrlsEqual(request[0].url, ENDPOINT_URL_CONSENT);
     });
 
     it('should not send GDPR Consent data if gdprApplies equals undefined', function () {
-      let request = spec.buildRequests(bidderRequests, { gdprConsent: { gdprApplies: undefined, consentString: 'consentString' } });
+      const request = spec.buildRequests(bidderRequests, { gdprConsent: { gdprApplies: undefined, consentString: 'consentString' } });
       expect(request.length).to.equal(1);
       expect(request[0]).to.have.property('url');
       expectUrlsEqual(request[0].url, ENDPOINT_URL);

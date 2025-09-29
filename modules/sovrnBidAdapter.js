@@ -68,7 +68,7 @@ export const spec = {
    */
   buildRequests: function(bidReqs, bidderRequest) {
     try {
-      let sovrnImps = [];
+      const sovrnImps = [];
       let iv;
       let schain;
       let eids;
@@ -223,7 +223,7 @@ export const spec = {
     if (!id || !seatbid || !Array.isArray(seatbid)) return []
 
     try {
-      let bids = seatbid
+      const bids = seatbid
         .filter(seat => seat)
         .map(seat => seat.bid.map(sovrnBid => {
           const bid = {
@@ -235,12 +235,12 @@ export const spec = {
             dealId: sovrnBid.dealid || null,
             currency: 'USD',
             netRevenue: true,
-            mediaType: sovrnBid.mtype == 2 ? VIDEO : BANNER,
+            mediaType: Number(sovrnBid.mtype) === 2 ? VIDEO : BANNER,
             ttl: sovrnBid.ext?.ttl || 90,
             meta: { advertiserDomains: sovrnBid && sovrnBid.adomain ? sovrnBid.adomain : [] }
           }
 
-          if (sovrnBid.mtype == 2) {
+          if (Number(sovrnBid.mtype) === 2) {
             bid.vastXml = decodeURIComponent(sovrnBid.adm)
           } else {
             bid.ad = sovrnBid.nurl ? decodeURIComponent(`${sovrnBid.adm}<img src="${sovrnBid.nurl}">`) : decodeURIComponent(sovrnBid.adm)

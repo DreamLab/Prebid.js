@@ -20,7 +20,7 @@ export const spec = {
   },
 
   buildRequests: function(validBidRequests, bidderRequest) {
-    let ret = {
+    const ret = {
       method: 'POST',
       url: '',
       data: '',
@@ -40,7 +40,7 @@ export const spec = {
       url: bidderRequest.refererInfo?.page,
       referrer: bidderRequest.refererInfo?.ref,
       screensize: getScreenSize(),
-      dnt: (navigator.doNotTrack == 'yes' || navigator.doNotTrack == '1' || navigator.msDoNotTrack == '1') ? 1 : 0,
+      dnt: (navigator.doNotTrack === 'yes' || navigator.doNotTrack === '1' || navigator.msDoNotTrack === '1') ? 1 : 0,
       language: navigator.language,
       ua: navigator.userAgent,
       pversion: '$prebid.version$',
@@ -147,7 +147,7 @@ export const spec = {
     let bids;
     let bidId;
     let bidObj;
-    let bidResponses = [];
+    const bidResponses = [];
 
     bids = bidRequest.bidRequest;
 
@@ -192,10 +192,10 @@ export const spec = {
   },
 
   getUserSyncs: (syncOptions, responses, gdprConsent, uspConsent, gppConsent) => {
-    let pixelType = syncOptions.iframeEnabled ? 'iframe' : 'image';
+    const pixelType = syncOptions.iframeEnabled ? 'iframe' : 'image';
     let syncEndpoint;
 
-    if (pixelType == 'iframe') {
+    if (pixelType === 'iframe') {
       syncEndpoint = 'https://sync.connectad.io/iFrameSyncer?';
     } else {
       syncEndpoint = 'https://sync.connectad.io/ImageSyncer?';
@@ -244,7 +244,7 @@ function getBidFloor(bidRequest) {
     });
   }
 
-  let floor = floorInfo?.floor || bidRequest.params.bidfloor || bidRequest.params.floorprice || 0;
+  const floor = floorInfo?.floor || bidRequest.params.bidfloor || bidRequest.params.floorprice || 0;
 
   return floor;
 }

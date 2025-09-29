@@ -17,16 +17,16 @@ export const spec = {
     if (bid.bidId && bid.bidder && bid.params && bid.params.placement_id) {
       return true;
     }
-    if (bid.params.placement_id == 0 && bid.params.test === 1) {
+    if (bid.params.placement_id === 0 && bid.params.test === 1) {
       return true;
     }
     return false;
   },
 
   buildRequests: (validBidRequests, bidderRequest) => {
-    let requestData = [];
+    const requestData = [];
     let size = [0, 0];
-    let oRTBRequest = {
+    const oRTBRequest = {
       at: 2,
       site: buildSite(bidderRequest),
       device: buildDevice(),
@@ -95,7 +95,7 @@ export const spec = {
   },
 
   interpretResponse: (serverResponse, { bidRequest }) => {
-    let bidResponse = [];
+    const bidResponse = [];
     let bid;
     let response;
 
@@ -111,7 +111,7 @@ export const spec = {
       return [];
     }
 
-    let tempResponse = {
+    const tempResponse = {
       requestId: bidRequest.bidId,
       cpm: bid.price,
       currency: response.cur,
@@ -151,7 +151,7 @@ registerBidder(spec);
 
 function buildSite(bidderRequest) {
   // TODO: should name/domain be the domain?
-  let site = {
+  const site = {
     name: window.location.hostname,
     publisher: {
       domain: window.location.hostname,
@@ -180,14 +180,14 @@ function buildDevice() {
     h: window.top.screen.height,
     js: 1,
     language: navigator.language,
-    dnt: navigator.doNotTrack === 'yes' || navigator.doNotTrack == '1' ||
-      navigator.msDoNotTrack == '1' ? 1 : 0,
+    dnt: navigator.doNotTrack === 'yes' || navigator.doNotTrack === '1' ||
+      navigator.msDoNotTrack === '1' ? 1 : 0,
   }
 }
 
 function buildRegs(bidderRequest) {
-  let regs = {
-    coppa: config.getConfig('coppa') == true ? 1 : 0,
+  const regs = {
+    coppa: config.getConfig('coppa') === true ? 1 : 0,
   };
 
   if (bidderRequest && bidderRequest.gdprConsent) {

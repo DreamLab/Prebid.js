@@ -26,14 +26,14 @@ describe('fluctAdapter', function () {
     });
 
     it('should return false when required params are not passed', function () {
-      let invalidBid = Object.assign({}, bid);
+      const invalidBid = Object.assign({}, bid);
       delete invalidBid.params;
       invalidBid.params = {};
       expect(spec.isBidRequestValid(invalidBid)).to.equal(false);
     });
 
     it('should return true when dfpUnitCode is not passed', function () {
-      let invalidBid = Object.assign({}, bid);
+      const invalidBid = Object.assign({}, bid);
       delete invalidBid.params;
       invalidBid.params = {
         tagId: '10000:100000001',
@@ -43,7 +43,7 @@ describe('fluctAdapter', function () {
     });
 
     it('should return false when groupId is not passed', function () {
-      let invalidBid = Object.assign({}, bid);
+      const invalidBid = Object.assign({}, bid);
       delete invalidBid.params;
       invalidBid.params = {
         dfpUnitCode: '/1000/dfp_unit_code',
@@ -437,6 +437,31 @@ describe('fluctAdapter', function () {
       )[0];
       expect(request.data.regs.gpp.string).to.eql('gpp-consent-string');
       expect(request.data.regs.gpp.sid).to.eql([1, 2, 3]);
+    });
+
+    it('sends no instl as instl = 0', function () {
+      const request = spec.buildRequests(bidRequests, bidderRequest)[0];
+      expect(request.data.instl).to.eql(0);
+    })
+
+    it('sends ortb2Imp.instl as instl = 0', function () {
+      const request = spec.buildRequests(bidRequests.map((req) => ({
+        ...req,
+        ortb2Imp: {
+          instl: 0,
+        },
+      })), bidderRequest)[0];
+      expect(request.data.instl).to.eql(0);
+    });
+
+    it('sends ortb2Imp.instl as instl', function () {
+      const request = spec.buildRequests(bidRequests.map((req) => ({
+        ...req,
+        ortb2Imp: {
+          instl: 1,
+        },
+      })), bidderRequest)[0];
+      expect(request.data.instl).to.eql(1);
     });
   });
 

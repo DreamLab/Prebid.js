@@ -8,6 +8,7 @@ import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { deepClone, logError, deepAccess, getWinDimensions } from '../src/utils.js';
 import { getBoundingClientRect } from '../libraries/boundingClientRect/boundingClientRect.js';
 import { toOrtbNativeRequest } from '../src/native.js';
+import {getExtraWinDimensions} from '../libraries/extraWinDimensions/extraWinDimensions.js';
 
 /**
  * @typedef {import('../src/adapters/bidderFactory.js').BidRequest} BidRequest
@@ -278,20 +279,21 @@ function getDocumentVisibility(window) {
  */
 function getPageInfo(bidderRequest) {
   const winDimensions = getWinDimensions();
+  const extraDims = getExtraWinDimensions();
   const topmostFrame = getFrameNesting();
   return {
     location: deepAccess(bidderRequest, 'refererInfo.page', null),
     referrer: deepAccess(bidderRequest, 'refererInfo.ref', null),
     stack: deepAccess(bidderRequest, 'refererInfo.stack', []),
     numIframes: deepAccess(bidderRequest, 'refererInfo.numIframes', 0),
-    wWidth: getWinDimensions().innerWidth,
-    wHeight: getWinDimensions().innerHeight,
-    oWidth: winDimensions.outerWidth,
-    oHeight: winDimensions.outerHeight,
+    wWidth: winDimensions.innerWidth,
+    wHeight: winDimensions.innerHeight,
+    oWidth: extraDims.outerWidth,
+    oHeight: extraDims.outerHeight,
     sWidth: winDimensions.screen.width,
     sHeight: winDimensions.screen.height,
-    aWidth: winDimensions.screen.availWidth,
-    aHeight: winDimensions.screen.availHeight,
+    aWidth: extraDims.screen.availWidth,
+    aHeight: extraDims.screen.availHeight,
     sLeft: 'screenLeft' in topmostFrame ? topmostFrame.screenLeft : topmostFrame.screenX,
     sTop: 'screenTop' in topmostFrame ? topmostFrame.screenTop : topmostFrame.screenY,
     xOffset: topmostFrame.pageXOffset,
@@ -421,7 +423,7 @@ function parseVideoSize(bid) {
 }
 
 function parseSizes(bid) {
-  let ret = [];
+  const ret = [];
   if (typeof bid.mediaTypes !== 'undefined' && typeof bid.mediaTypes.banner !== 'undefined' && typeof bid.mediaTypes.banner.sizes !== 'undefined' && Array.isArray(bid.mediaTypes.banner.sizes) && bid.mediaTypes.banner.sizes.length > 0) {
     return getSizes(bid.mediaTypes.banner.sizes)
   }
@@ -442,7 +444,7 @@ function getSizes(sizes) {
 }
 
 function getUserSyncs(syncOptions, serverResponses, gdprConsent, uspConsent, gppConsent) {
-  let syncs = [];
+  const syncs = [];
   let params = '';
   if (gdprConsent) {
     if (typeof gdprConsent.gdprApplies === 'boolean') {
@@ -477,18 +479,18 @@ function getUserSyncs(syncOptions, serverResponses, gdprConsent, uspConsent, gpp
 
 function getBidFloor(bidRequest, mediaType, sizes) {
   if (typeof bidRequest.getFloor !== 'function') return [];
-    const getFloorObject = (size) => {
-      const floorData = bidRequest.getFloor({
-        currency: 'EUR',
-        mediaType: mediaType || '*',
-        size: size || null
-      }) || {};
+  const getFloorObject = (size) => {
+    const floorData = bidRequest.getFloor({
+      currency: 'EUR',
+      mediaType: mediaType || '*',
+      size: size || null
+    }) || {};
 
-      return {
-        ...floorData,
-        size: size && size.length == 2 ? {width: size[0], height: size[1]} : null,
-        floor: floorData.floor != null ? floorData.floor : null
-      };
+    return {
+      ...floorData,
+      size: size && size.length === 2 ? {width: size[0], height: size[1]} : null,
+      floor: floorData.floor != null ? floorData.floor : null
+    };
   };
 
   if (Array.isArray(sizes) && sizes.length > 0) {

@@ -35,25 +35,25 @@ export const STORAGE_KEY = '_im_str'
  */
 const helpers = {
   getExtParamsFromBid(bid) {
-    let ext = {
+    const ext = {
       impactify: {
         appId: bid.params.appId
       },
     };
 
-    if (typeof bid.params.format == 'string') {
+    if (typeof bid.params.format === 'string') {
       ext.impactify.format = bid.params.format;
     }
 
-    if (typeof bid.params.style == 'string') {
+    if (typeof bid.params.style === 'string') {
       ext.impactify.style = bid.params.style;
     }
 
-    if (typeof bid.params.container == 'string') {
+    if (typeof bid.params.container === 'string') {
       ext.impactify.container = bid.params.container;
     }
 
-    if (typeof bid.params.size == 'string') {
+    if (typeof bid.params.size === 'string') {
       ext.impactify.size = bid.params.size;
     }
 
@@ -72,7 +72,7 @@ const helpers = {
   },
 
   createOrtbImpBannerObj(bid, size) {
-    let sizes = size.split('x');
+    const sizes = size.split('x');
 
     return {
       id: 'banner-' + bid.bidId,
@@ -118,7 +118,7 @@ const helpers = {
  */
 function createOpenRtbRequest(validBidRequests, bidderRequest) {
   // Create request and set imp bids inside
-  let request = {
+  const request = {
     id: bidderRequest.bidderRequestId,
     validBidRequests,
     cur: [DEFAULT_CURRENCY],
@@ -137,11 +137,11 @@ function createOpenRtbRequest(validBidRequests, bidderRequest) {
   }
 
   // Set SChain in request
-  let schain = deepAccess(validBidRequests, '0.ortb2.source.ext.schain');
+  const schain = deepAccess(validBidRequests, '0.ortb2.source.ext.schain');
   if (schain) request.source.ext = { schain: schain };
 
   // Set Eids
-  let eids = deepAccess(validBidRequests, '0.userIdAsEids');
+  const eids = deepAccess(validBidRequests, '0.userIdAsEids');
   if (eids && eids.length) {
     deepSetValue(request, 'user.ext.eids', eids);
   }
@@ -155,7 +155,7 @@ function createOpenRtbRequest(validBidRequests, bidderRequest) {
     devicetype: helpers.getDeviceType(),
     ua: navigator.userAgent,
     js: 1,
-    dnt: (navigator.doNotTrack == 'yes' || navigator.doNotTrack == '1' || navigator.msDoNotTrack == '1') ? 1 : 0,
+    dnt: (navigator.doNotTrack === 'yes' || navigator.doNotTrack === '1' || navigator.msDoNotTrack === '1') ? 1 : 0,
     language: ((navigator.language || navigator.userLanguage || '').split('-'))[0] || 'en',
   };
   request.site = { page: bidderRequest.refererInfo.page };
@@ -168,7 +168,7 @@ function createOpenRtbRequest(validBidRequests, bidderRequest) {
   }
   deepSetValue(request, 'regs.ext.gdpr', gdprApplies);
 
-  if (GET_CONFIG('coppa') == true) deepSetValue(request, 'regs.coppa', 1);
+  if (GET_CONFIG('coppa') === true) deepSetValue(request, 'regs.coppa', 1);
 
   if (bidderRequest.uspConsent) {
     deepSetValue(request, 'regs.ext.us_privacy', bidderRequest.uspConsent);
@@ -179,15 +179,15 @@ function createOpenRtbRequest(validBidRequests, bidderRequest) {
 
   // Create imps with bids
   validBidRequests.forEach((bid) => {
-    let bannerObj = deepAccess(bid.mediaTypes, `banner`);
+    const bannerObj = deepAccess(bid.mediaTypes, `banner`);
 
-    let imp = {
+    const imp = {
       id: bid.bidId,
       bidfloor: bid.params.bidfloor ? bid.params.bidfloor : 0,
       ext: helpers.getExtParamsFromBid(bid)
     };
 
-    if (bannerObj && typeof imp.ext.impactify.size == 'string') {
+    if (bannerObj && typeof imp.ext.impactify.size === 'string') {
       imp.banner = {
         ...helpers.createOrtbImpBannerObj(bid, imp.ext.impactify.size)
       }
@@ -228,10 +228,10 @@ export const spec = {
    * @return boolean True if this is a valid bid, and false otherwise.
    */
   isBidRequestValid: function (bid) {
-    if (typeof bid.params.appId != 'string' || !bid.params.appId) {
+    if (typeof bid.params.appId !== 'string' || !bid.params.appId) {
       return false;
     }
-    if (typeof bid.params.format != 'string' || typeof bid.params.style != 'string' || !bid.params.format || !bid.params.style) {
+    if (typeof bid.params.format !== 'string' || typeof bid.params.style !== 'string' || !bid.params.format || !bid.params.style) {
       return false;
     }
     if (bid.params.format !== 'screen' && bid.params.format !== 'display') {
@@ -253,7 +253,7 @@ export const spec = {
    */
   buildRequests: function (validBidRequests, bidderRequest) {
     // Create a clean openRTB request
-    let request = createOpenRtbRequest(validBidRequests, bidderRequest);
+    const request = createOpenRtbRequest(validBidRequests, bidderRequest);
     const imStr = helpers.getImStrFromLocalStorage();
     const options = {}
 

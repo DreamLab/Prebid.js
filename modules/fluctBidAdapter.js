@@ -1,4 +1,4 @@
-import { _each, deepSetValue, isEmpty } from '../src/utils.js';
+import { _each, deepAccess, deepSetValue, isEmpty } from '../src/utils.js';
 import { config } from '../src/config.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 
@@ -98,6 +98,8 @@ export const spec = {
         data.schain = schain;
       }
 
+      data.instl = deepAccess(request, 'ortb2Imp.instl') === 1 || request.params.instl === 1 ? 1 : 0;
+
       const searchParams = new URLSearchParams({
         dfpUnitCode: request.params.dfpUnitCode,
         tagId: request.params.tagId,
@@ -140,7 +142,7 @@ export const spec = {
       const callImpBeacon = `<script type="application/javascript">` +
         `(function() { var img = new Image(); img.src = "${beaconUrl}"})()` +
         `</script>`;
-      let data = {
+      const data = {
         requestId: res.id,
         currency: res.cur,
         cpm: parseFloat(bid.price) || 0,

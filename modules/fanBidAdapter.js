@@ -1,7 +1,8 @@
 import { ortbConverter } from '../libraries/ortbConverter/converter.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { BANNER, VIDEO } from '../src/mediaTypes.js';
-import { deepAccess, deepSetValue, logInfo, logWarn, logError, triggerPixel } from '../src/utils.js';
+import { deepAccess, deepSetValue, isNumber, logInfo, logWarn, logError, triggerPixel } from '../src/utils.js';
+import { getBidFloor } from '../libraries/currencyUtils/floor.js';
 import { getStorageManager } from '../src/storageManager.js';
 import { Renderer } from '../src/Renderer.js';
 import { getGptSlotInfoForAdUnitCode } from '../libraries/gptUtils/gptUtils.js';
@@ -35,9 +36,15 @@ const converter = ortbConverter({
       imp.tagid = bidRequest.params.placementId;
     }
 
-    // Add floor price
-    if (bidRequest.params.bidFloor) {
-      imp.bidfloor = parseFloat(bidRequest.params.bidFloor);
+    // There is no default floor. bidfloor is set only
+    // if the priceFloors module is activated and returns a valid floor.
+    const floor = getBidFloor(bidRequest);
+    if (isNumber(floor)) {
+      imp.bidfloor = floor;
+    }
+
+    // Add floor currency
+    if (bidRequest.params.bidFloorCur) {
       imp.bidfloorcur = bidRequest.params.bidFloorCur || DEFAULT_CURRENCY;
     }
 
@@ -67,28 +74,15 @@ const converter = ortbConverter({
 
     // Add user extensions
     const firstBid = imps[0];
-    const pbUser = firstBid.userId || {};
     request.user = request.user || {};
     request.user.ext = request.user.ext || {};
 
-    if (pbUser.tdid) {
-      request.user.ext.tdid = pbUser.tdid;
+    if (firstBid.userIdAsEids) {
+      request.user.ext.eids = firstBid.userIdAsEids;
     }
 
     if (window.geck) {
       request.user.ext.adi = window.geck;
-    }
-
-    if (pbUser.pubcid) {
-      request.user.ext.pubcid = pbUser.pubcid;
-    }
-
-    if (pbUser.id5id?.uid) {
-      request.user.ext.id5id = pbUser.id5id.uid;
-    }
-
-    if (pbUser.lipb?.lipbid) {
-      request.user.ext.lipbid = pbUser.lipb.lipbid;
     }
 
     return request;
@@ -212,7 +206,7 @@ export const spec = {
         url: NETWORK_ENDPOINTS[network] || DEFAULT_ENDPOINT,
         data,
         options: {
-          contentType: 'application/json',
+          contentType: 'text/plain',
           withCredentials: false
         },
         bids
@@ -302,7 +296,7 @@ export const spec = {
 
     if (bid.meta.libertas.pxl && bid.meta.libertas.pxl.length > 0) {
       for (var i = 0; i < bid.meta.libertas.pxl.length; i++) {
-        if (bid.meta.libertas.pxl[i].type == 0) {
+        if (Number(bid.meta.libertas.pxl[i].type) === 0) {
           triggerPixel(bid.meta.libertas.pxl[i].url);
         }
       }
@@ -357,6 +351,12 @@ function createRenderer(bid, videoPlayerUrl) {
     renderer.setRender(function (bidResponse) {
       const divId = document.getElementById(bid.adUnitCode) ? bid.adUnitCode : getGptSlotInfoForAdUnitCode(bid.adUnitCode).divId;
       const adUnit = document.getElementById(divId);
+
+      if (!window.createOutstreamPlayer) {
+        logWarn('Renderer error: outstream player is not available');
+
+        return;
+      }
 
       window.createOutstreamPlayer(adUnit, bidResponse.vastXml, bid.width, bid.height);
     });

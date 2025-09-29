@@ -76,7 +76,7 @@ export var spec = {
     }
     var conf = spec._setRefURL(refererInfo);
     const request = spec._createoRTBRequest(validBidRequests, conf);
-    if (request && request.imp.length == 0) {
+    if (request && request.imp.length === 0) {
       return;
     }
     spec._setOtherParams(bidderRequest, request);
@@ -105,7 +105,7 @@ export var spec = {
    * @return {UserSync[]} The user syncs which should be dropped.
    */
   getUserSyncs: (syncOptions, serverResponses) => {
-    let syncurl = USER_SYNC + 'pid=' + pubId;
+    const syncurl = USER_SYNC + 'pid=' + pubId;
     if (syncOptions.iframeEnabled) {
       return [{
         type: 'iframe',
@@ -295,10 +295,10 @@ export var spec = {
     if (typeof bid.getFloor === 'function') {
       [BANNER, VIDEO].forEach(mediaType => {
         if (impObj.hasOwnProperty(mediaType)) {
-          let floorInfo = bid.getFloor({ currency: impObj.bidfloorcur, mediaType: mediaType, size: '*' });
+          const floorInfo = bid.getFloor({ currency: impObj.bidfloorcur, mediaType: mediaType, size: '*' });
           if (utils.isPlainObject(floorInfo) && floorInfo.currency === impObj.bidfloorcur && !isNaN(parseInt(floorInfo.floor))) {
-            let mediaTypeFloor = parseFloat(floorInfo.floor);
-            bidFloor = (bidFloor == -1 ? mediaTypeFloor : Math.min(mediaTypeFloor, bidFloor));
+            const mediaTypeFloor = parseFloat(floorInfo.floor);
+            bidFloor = (bidFloor === -1 ? mediaTypeFloor : Math.min(mediaTypeFloor, bidFloor));
           }
         }
       });
@@ -510,7 +510,7 @@ export var spec = {
       var params = bid ? bid.params : null;
       var bannerData = params && params.banner;
       var sizes = spec._getSizes(bid) || [];
-      if (sizes && sizes.length == 0) {
+      if (sizes && sizes.length === 0) {
         sizes = bid.mediaTypes.banner.sizes[0];
       }
       if (sizes && sizes.length > 0) {

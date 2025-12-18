@@ -274,6 +274,7 @@ export const spec = {
     const baseUrl = getEndpoint(data.ext.network);
     const fullUrl = `${baseUrl}?data=${encodeURIComponent(jsonData)}`;
 
+    // adbeta needs credentials omitted to avoid CORS issues, especially in Firefox
     const useCredentials = !(!!data.ext?.adbeta);
 
     // Switch to POST if URL exceeds 8k characters

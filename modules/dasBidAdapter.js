@@ -274,6 +274,8 @@ export const spec = {
     const baseUrl = getEndpoint(data.ext.network);
     const fullUrl = `${baseUrl}?data=${encodeURIComponent(jsonData)}`;
 
+    const useCredentials = !(!!data.ext?.adbeta);
+
     // Switch to POST if URL exceeds 8k characters
     if (fullUrl.length > 8192) {
       return {
@@ -281,7 +283,7 @@ export const spec = {
         url: baseUrl,
         data: jsonData,
         options: {
-          withCredentials: true,
+          withCredentials: useCredentials,
           crossOrigin: true,
           customHeaders: {
             'Content-Type': 'text/plain'
@@ -294,7 +296,7 @@ export const spec = {
       method: 'GET',
       url: fullUrl,
       options: {
-        withCredentials: true,
+        withCredentials: useCredentials,
         crossOrigin: true,
       },
     };

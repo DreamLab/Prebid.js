@@ -338,6 +338,41 @@ describe('dasBidAdapter', function () {
         expect(spec.interpretResponse({ body: { seatbid: [] } })).to.be.an('array').that.is.empty;
       });
 
+      it('should include adserverTargeting with bidder_variant when present in ext', function () {
+        const responseWithVariant = {
+          body: {
+            seatbid: [{
+              bid: [{
+                impid: 'bid123',
+                price: 3.5,
+                w: 300,
+                h: 250,
+                adm: '<creative>',
+                crid: 'crid123',
+                mtype: 1,
+                adomain: ['advertiser.com'],
+                ext: {
+                  bidder_variant: 'variant_a'
+                }
+              }]
+            }],
+            cur: 'USD'
+          }
+        };
+
+        const bidResponses = spec.interpretResponse(responseWithVariant);
+
+        expect(bidResponses[0].adserverTargeting).to.deep.equal({
+          'bidder_variant': 'variant_a'
+        });
+      });
+
+      it('should not include adserverTargeting when bidder_variant is not present', function () {
+        const bidResponses = spec.interpretResponse(serverResponse);
+
+        expect(bidResponses[0].adserverTargeting).to.be.undefined;
+      });
+
       it('should return proper bid response for native', function () {
         const nativeResponse = {
           body: {

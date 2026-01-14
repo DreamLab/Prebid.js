@@ -298,6 +298,13 @@ function interpretResponse(serverResponse) {
         },
       };
 
+      const bidderVariant = bid.ext?.bidder_variant;
+      if (bidderVariant) {
+        bidResponse.adserverTargeting = {
+          'bidder_variant': bidderVariant
+        };
+      }
+
       if (bid.mtype === 1) {
         bidResponse.mediaType = BANNER;
         bidResponse.ad = bid.adm;

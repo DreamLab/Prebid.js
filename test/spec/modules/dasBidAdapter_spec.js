@@ -338,8 +338,8 @@ describe('dasBidAdapter', function () {
         expect(spec.interpretResponse({ body: { seatbid: [] } })).to.be.an('array').that.is.empty;
       });
 
-      it('should include adserverTargeting with bidder_variant when present in ext', function () {
-        const responseWithVariant = {
+      it('should include adserverTargeting when targeting is present in ext', function () {
+        const responseWithTargeting = {
           body: {
             seatbid: [{
               bid: [{
@@ -352,7 +352,9 @@ describe('dasBidAdapter', function () {
                 mtype: 1,
                 adomain: ['advertiser.com'],
                 ext: {
-                  bidder_variant: 'variant_a'
+                  targeting: {
+                    bidder_variant: 'variant_a'
+                  }
                 }
               }]
             }],
@@ -360,14 +362,47 @@ describe('dasBidAdapter', function () {
           }
         };
 
-        const bidResponses = spec.interpretResponse(responseWithVariant);
+        const bidResponses = spec.interpretResponse(responseWithTargeting);
 
         expect(bidResponses[0].adserverTargeting).to.deep.equal({
           'bidder_variant': 'variant_a'
         });
       });
 
-      it('should not include adserverTargeting when bidder_variant is not present', function () {
+      it('should pass through all targeting keys from server', function () {
+        const responseWithMultipleTargeting = {
+          body: {
+            seatbid: [{
+              bid: [{
+                impid: 'bid123',
+                price: 3.5,
+                w: 300,
+                h: 250,
+                adm: '<creative>',
+                crid: 'crid123',
+                mtype: 1,
+                adomain: ['advertiser.com'],
+                ext: {
+                  targeting: {
+                    bidder_variant: 'variant_a',
+                    custom_key: 'custom_value'
+                  }
+                }
+              }]
+            }],
+            cur: 'USD'
+          }
+        };
+
+        const bidResponses = spec.interpretResponse(responseWithMultipleTargeting);
+
+        expect(bidResponses[0].adserverTargeting).to.deep.equal({
+          'bidder_variant': 'variant_a',
+          'custom_key': 'custom_value'
+        });
+      });
+
+      it('should not include adserverTargeting when targeting is not present', function () {
         const bidResponses = spec.interpretResponse(serverResponse);
 
         expect(bidResponses[0].adserverTargeting).to.be.undefined;

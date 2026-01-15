@@ -298,11 +298,9 @@ function interpretResponse(serverResponse) {
         },
       };
 
-      const bidderVariant = bid.ext?.bidder_variant;
-      if (bidderVariant) {
-        bidResponse.adserverTargeting = {
-          'bidder_variant': bidderVariant
-        };
+      const targeting = bid.ext?.targeting;
+      if (targeting) {
+        bidResponse.adserverTargeting = targeting;
       }
 
       if (bid.mtype === 1) {

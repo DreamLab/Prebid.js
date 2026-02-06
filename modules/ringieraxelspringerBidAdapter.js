@@ -178,7 +178,7 @@ function parseOrtbResponse(ad) {
   return ortb
 }
 
-const parseNativeResponse = (ad) => {
+function _parseNativeResponse(ad) {
   if (!(ad.data?.fields && ad.data?.meta)) {
     return false;
   }
@@ -237,7 +237,7 @@ const buildBid = (ad, mediaType) => {
   if (mediaType === 'native') {
     data.meta = { mediaType: NATIVE };
     data.mediaType = NATIVE;
-    data.native = parseNativeResponse(ad) || {};
+    data.native = _parseNativeResponse(ad) || {};
 
     delete data.ad;
   }

@@ -178,7 +178,7 @@ function parseOrtbResponse(ad) {
   return ortb
 }
 
-function parseNativeResponse(ad) {
+const parseNativeResponse = (ad) => {
   if (!(ad.data?.fields && ad.data?.meta)) {
     return false;
   }

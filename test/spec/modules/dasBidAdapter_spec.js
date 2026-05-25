@@ -575,5 +575,72 @@ describe('dasBidAdapter', function () {
       const bidResponses = spec.interpretResponse(nativeResponse);
       expect(bidResponses[0].native).to.deep.equal({});
     });
+
+    describe('user.eids from ortb2', function () {
+      const onetEid = {
+        source: 'onet.pl',
+        inserter: 'onet.pl',
+        uids: [{ id: 'test-artemis-id', atype: 1, ext: { id_type: 'tracking', consent_required: true } }]
+      };
+
+      it('should include user.eids when onet.pl EID is present in ortb2', function () {
+        const bidderRequestWithEids = {
+          ...bidderRequest,
+          ortb2: {
+            ...bidderRequest.ortb2,
+            user: {
+              eids: [onetEid]
+            }
+          }
+        };
+
+        const request = spec.buildRequests(bidRequests, bidderRequestWithEids);
+        const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
+
+        expect(payload.user.eids).to.be.an('array').with.lengthOf(1);
+        expect(payload.user.eids[0].source).to.equal('onet.pl');
+        expect(payload.user.eids[0].inserter).to.equal('onet.pl');
+        expect(payload.user.eids[0].uids[0].id).to.equal('test-artemis-id');
+        expect(payload.user.eids[0].uids[0].atype).to.equal(1);
+        expect(payload.user.eids[0].uids[0].ext.id_type).to.equal('tracking');
+        expect(payload.user.eids[0].uids[0].ext.consent_required).to.equal(true);
+      });
+
+      it('should not include user.eids when ortb2.user.eids is absent', function () {
+        const request = spec.buildRequests(bidRequests, bidderRequest);
+        const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
+
+        expect(payload.user).to.not.have.property('eids');
+      });
+
+      it('should not include user.eids when ortb2.user.eids contains no onet.pl source', function () {
+        const bidderRequestWithOtherEid = {
+          ...bidderRequest,
+          ortb2: {
+            ...bidderRequest.ortb2,
+            user: {
+              eids: [{ source: 'other-source.com', uids: [{ id: 'some-id', atype: 1 }] }]
+            }
+          }
+        };
+
+        const request = spec.buildRequests(bidRequests, bidderRequestWithOtherEid);
+        const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
+
+        expect(payload.user).to.not.have.property('eids');
+      });
+
+      it('should not include user.eids when ortb2.user.eids is empty', function () {
+        const bidderRequestWithEmptyEids = {
+          ...bidderRequest,
+          ortb2: { ...bidderRequest.ortb2, user: { eids: [] } }
+        };
+
+        const request = spec.buildRequests(bidRequests, bidderRequestWithEmptyEids);
+        const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
+
+        expect(payload.user).to.not.have.property('eids');
+      });
+    });
   });
 });

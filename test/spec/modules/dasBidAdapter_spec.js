@@ -576,25 +576,20 @@ describe('dasBidAdapter', function () {
       expect(bidResponses[0].native).to.deep.equal({});
     });
 
-    describe('user.eids from ortb2', function () {
+    describe('user.eids from userIdAsEids', function () {
       const onetEid = {
         source: 'onet.pl',
         inserter: 'onet.pl',
         uids: [{ id: 'test-artemis-id', atype: 1, ext: { id_type: 'tracking', consent_required: true } }]
       };
 
-      it('should include user.eids when onet.pl EID is present in ortb2', function () {
-        const bidderRequestWithEids = {
-          ...bidderRequest,
-          ortb2: {
-            ...bidderRequest.ortb2,
-            user: {
-              eids: [onetEid]
-            }
-          }
-        };
+      it('should include user.eids when onet.pl EID is present in userIdAsEids', function () {
+        const bidRequestsWithEids = [{
+          ...bidRequests[0],
+          userIdAsEids: [onetEid]
+        }];
 
-        const request = spec.buildRequests(bidRequests, bidderRequestWithEids);
+        const request = spec.buildRequests(bidRequestsWithEids, bidderRequest);
         const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
 
         expect(payload.user.eids).to.be.an('array').with.lengthOf(1);
@@ -606,37 +601,29 @@ describe('dasBidAdapter', function () {
         expect(payload.user.eids[0].uids[0].ext.consent_required).to.equal(true);
       });
 
-      it('should not include user.eids when ortb2.user.eids is absent', function () {
+      it('should not include user.eids when userIdAsEids is absent', function () {
         const request = spec.buildRequests(bidRequests, bidderRequest);
         const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
 
         expect(payload.user).to.not.have.property('eids');
       });
 
-      it('should not include user.eids when ortb2.user.eids contains no onet.pl source', function () {
-        const bidderRequestWithOtherEid = {
-          ...bidderRequest,
-          ortb2: {
-            ...bidderRequest.ortb2,
-            user: {
-              eids: [{ source: 'other-source.com', uids: [{ id: 'some-id', atype: 1 }] }]
-            }
-          }
-        };
+      it('should not include user.eids when userIdAsEids contains no onet.pl source', function () {
+        const bidRequestsWithOtherEid = [{
+          ...bidRequests[0],
+          userIdAsEids: [{ source: 'other-source.com', uids: [{ id: 'some-id', atype: 1 }] }]
+        }];
 
-        const request = spec.buildRequests(bidRequests, bidderRequestWithOtherEid);
+        const request = spec.buildRequests(bidRequestsWithOtherEid, bidderRequest);
         const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
 
         expect(payload.user).to.not.have.property('eids');
       });
 
-      it('should not include user.eids when ortb2.user.eids is empty', function () {
-        const bidderRequestWithEmptyEids = {
-          ...bidderRequest,
-          ortb2: { ...bidderRequest.ortb2, user: { eids: [] } }
-        };
+      it('should not include user.eids when userIdAsEids is empty', function () {
+        const bidRequestsWithEmptyEids = [{ ...bidRequests[0], userIdAsEids: [] }];
 
-        const request = spec.buildRequests(bidRequests, bidderRequestWithEmptyEids);
+        const request = spec.buildRequests(bidRequestsWithEmptyEids, bidderRequest);
         const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
 
         expect(payload.user).to.not.have.property('eids');

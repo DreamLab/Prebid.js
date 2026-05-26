@@ -164,8 +164,8 @@ function buildUserIds(customParams) {
   return userIds;
 }
 
-function buildUserEids(bidderRequest) {
-  const eids = deepAccess(bidderRequest, 'ortb2.user.eids');
+function buildUserEids(bidRequests) {
+  const eids = deepAccess(bidRequests, '0.userIdAsEids');
   if (!Array.isArray(eids) || eids.length === 0) {
     return null;
   }
@@ -270,7 +270,7 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
     }
   }
 
-  const userEids = buildUserEids(bidderRequest);
+  const userEids = buildUserEids(bidRequests);
 
   if (userEids) {
     request.user.eids = userEids;

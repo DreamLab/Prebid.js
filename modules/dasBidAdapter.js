@@ -147,6 +147,12 @@ function parseParams(params, bidderRequest) {
     customParams.dsainfo = dsaRequired;
   }
 
+  // AdShield anti-adblock recovery signal (set by dlApi as customParams.asd, like adbeta).
+  // Routed into ext.keyvalues so das-bidder serves only adblock_compability == 2 demand.
+  if (customParams.asd !== undefined) {
+    keyValues.asd = customParams.asd;
+  }
+
   return {
     customParams,
     keyValues,
@@ -356,6 +362,10 @@ export const spec = {
     const jsonData = JSON.stringify(data);
     const baseUrl = getEndpoint(data.ext.network);
     const fullUrl = `${baseUrl}?data=${encodeURIComponent(jsonData)}`;
+
+    const queryParams = Object.fromEntries(new URL(fullUrl).searchParams.entries());
+    // eslint-disable-next-line no-console
+    console.log('[das] CSR request:', { url: baseUrl, fullUrl, data: jsonData, queryParams });
 
     // adbeta needs credentials omitted to avoid CORS issues, especially in Firefox
     const useCredentials = !data.ext?.adbeta;

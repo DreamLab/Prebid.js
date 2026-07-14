@@ -179,6 +179,30 @@ describe('dasBidAdapter', function () {
       expect(payload.imp[0].banner.format[0]).to.deep.equal({ w: 300, h: 250 });
     });
 
+    it('should route customParams.asd into ext.keyvalues for AdShield recovery', function () {
+      const asdBidRequests = [{
+        ...bidRequests[0],
+        params: {
+          ...bidRequests[0].params,
+          customParams: { asd: 1 }
+        }
+      }];
+
+      const request = spec.buildRequests(asdBidRequests, bidderRequest);
+      const params = new URLSearchParams(request.url.split('?')[1]);
+      const payload = JSON.parse(decodeURIComponent(params.get('data')));
+
+      expect(payload.ext.keyvalues.asd).to.equal(1);
+    });
+
+    it('should not set ext.keyvalues.asd without customParams.asd', function () {
+      const request = spec.buildRequests(bidRequests, bidderRequest);
+      const params = new URLSearchParams(request.url.split('?')[1]);
+      const payload = JSON.parse(decodeURIComponent(params.get('data')));
+
+      expect(payload.ext.keyvalues.asd).to.be.undefined;
+    });
+
     it('should use GET method when URL is under 8192 characters', function () {
       const request = spec.buildRequests(bidRequests, bidderRequest);
       expect(request.method).to.equal('GET');

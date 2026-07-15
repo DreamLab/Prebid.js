@@ -374,13 +374,9 @@ export const spec = {
       mediaType: (bid.mediaTypes && bid.mediaTypes.banner) ? 'display' : NATIVE
     }));
 
-    const url = getEndpoint(network) + contextQuery + slotsQuery + gdprQuery;
-    // eslint-disable-next-line no-console
-    console.log('[ringieraxelspringer] CSR request:', url);
-
     return [{
       method: 'GET',
-      url,
+      url: getEndpoint(network) + contextQuery + slotsQuery + gdprQuery,
       bidIds: bidIds
     }];
   },

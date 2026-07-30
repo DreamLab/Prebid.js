@@ -12,6 +12,7 @@ describe('dasBidAdapter', function () {
   });
 
   describe('isBidRequestValid', function () {
+    // Istniejące testy
     const validBid = {
       params: {
         site: 'site1',
@@ -33,6 +34,7 @@ describe('dasBidAdapter', function () {
       expect(spec.isBidRequestValid({ params: { slot: 'slot1' } })).to.be.false;
     });
 
+    // Nowe testy
     it('should return true with additional optional params', function () {
       const bidWithOptional = {
         params: {
@@ -175,6 +177,31 @@ describe('dasBidAdapter', function () {
       expect(payload.imp[0].id).to.equal('bid123');
       expect(payload.imp[0].tagid).to.equal('slot1');
       expect(payload.imp[0].banner.format[0]).to.deep.equal({ w: 300, h: 250 });
+    });
+
+    it('should route customParams.asd into ext.asd for AdShield recovery', function () {
+      const asdBidRequests = [{
+        ...bidRequests[0],
+        params: {
+          ...bidRequests[0].params,
+          customParams: { asd: 1 }
+        }
+      }];
+
+      const request = spec.buildRequests(asdBidRequests, bidderRequest);
+      const params = new URLSearchParams(request.url.split('?')[1]);
+      const payload = JSON.parse(decodeURIComponent(params.get('data')));
+
+      expect(payload.ext.asd).to.equal(1);
+      expect(payload.ext.keyvalues.asd).to.be.undefined;
+    });
+
+    it('should not set ext.asd without customParams.asd', function () {
+      const request = spec.buildRequests(bidRequests, bidderRequest);
+      const params = new URLSearchParams(request.url.split('?')[1]);
+      const payload = JSON.parse(decodeURIComponent(params.get('data')));
+
+      expect(payload.ext.asd).to.be.undefined;
     });
 
     it('should use GET method when URL is under 8192 characters', function () {
@@ -334,6 +361,76 @@ describe('dasBidAdapter', function () {
         expect(spec.interpretResponse({ body: null })).to.be.an('array').that.is.empty;
         expect(spec.interpretResponse({ body: {} })).to.be.an('array').that.is.empty;
         expect(spec.interpretResponse({ body: { seatbid: [] } })).to.be.an('array').that.is.empty;
+      });
+
+      it('should include adserverTargeting when targeting is present in ext', function () {
+        const responseWithTargeting = {
+          body: {
+            seatbid: [{
+              bid: [{
+                impid: 'bid123',
+                price: 3.5,
+                w: 300,
+                h: 250,
+                adm: '<creative>',
+                crid: 'crid123',
+                mtype: 1,
+                adomain: ['advertiser.com'],
+                ext: {
+                  targeting: {
+                    bidder_variant: 'variant_a'
+                  }
+                }
+              }]
+            }],
+            cur: 'USD'
+          }
+        };
+
+        const bidResponses = spec.interpretResponse(responseWithTargeting);
+
+        expect(bidResponses[0].adserverTargeting).to.deep.equal({
+          'bidder_variant': 'variant_a'
+        });
+      });
+
+      it('should pass through all targeting keys from server', function () {
+        const responseWithMultipleTargeting = {
+          body: {
+            seatbid: [{
+              bid: [{
+                impid: 'bid123',
+                price: 3.5,
+                w: 300,
+                h: 250,
+                adm: '<creative>',
+                crid: 'crid123',
+                mtype: 1,
+                adomain: ['advertiser.com'],
+                ext: {
+                  targeting: {
+                    bidder_variant: 'variant_a',
+                    custom_key: 'custom_value'
+                  }
+                }
+              }]
+            }],
+            cur: 'USD'
+          }
+        };
+
+        const bidResponses = spec.interpretResponse(responseWithMultipleTargeting);
+
+        expect(bidResponses[0].adserverTargeting).to.deep.equal({
+          'bidder_variant': 'variant_a',
+          'custom_key': 'custom_value'
+        });
+      });
+
+      it('should not include adserverTargeting when targeting is not present', function () {
+        const bidResponses = spec.interpretResponse(serverResponse);
+
+        expect(bidResponses[0].adserverTargeting).to.be.undefined;
       });
 
       it('should return proper bid response for native', function () {
@@ -502,6 +599,60 @@ describe('dasBidAdapter', function () {
 
       const bidResponses = spec.interpretResponse(nativeResponse);
       expect(bidResponses[0].native).to.deep.equal({});
+    });
+
+    describe('user.eids from userIdAsEids', function () {
+      const onetEid = {
+        source: 'onet.pl',
+        inserter: 'onet.pl',
+        uids: [{ id: 'test-artemis-id', atype: 1, ext: { id_type: 'tracking', consent_required: true } }]
+      };
+
+      it('should include user.eids when onet.pl EID is present in userIdAsEids', function () {
+        const bidRequestsWithEids = [{
+          ...bidRequests[0],
+          userIdAsEids: [onetEid]
+        }];
+
+        const request = spec.buildRequests(bidRequestsWithEids, bidderRequest);
+        const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
+
+        expect(payload.user.eids).to.be.an('array').with.lengthOf(1);
+        expect(payload.user.eids[0].source).to.equal('onet.pl');
+        expect(payload.user.eids[0].inserter).to.equal('onet.pl');
+        expect(payload.user.eids[0].uids[0].id).to.equal('test-artemis-id');
+        expect(payload.user.eids[0].uids[0].atype).to.equal(1);
+        expect(payload.user.eids[0].uids[0].ext.id_type).to.equal('tracking');
+        expect(payload.user.eids[0].uids[0].ext.consent_required).to.equal(true);
+      });
+
+      it('should not include user.eids when userIdAsEids is absent', function () {
+        const request = spec.buildRequests(bidRequests, bidderRequest);
+        const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
+
+        expect(payload.user).to.not.have.property('eids');
+      });
+
+      it('should not include user.eids when userIdAsEids contains no onet.pl source', function () {
+        const bidRequestsWithOtherEid = [{
+          ...bidRequests[0],
+          userIdAsEids: [{ source: 'other-source.com', uids: [{ id: 'some-id', atype: 1 }] }]
+        }];
+
+        const request = spec.buildRequests(bidRequestsWithOtherEid, bidderRequest);
+        const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
+
+        expect(payload.user).to.not.have.property('eids');
+      });
+
+      it('should not include user.eids when userIdAsEids is empty', function () {
+        const bidRequestsWithEmptyEids = [{ ...bidRequests[0], userIdAsEids: [] }];
+
+        const request = spec.buildRequests(bidRequestsWithEmptyEids, bidderRequest);
+        const payload = JSON.parse(decodeURIComponent(new URL(request.url).searchParams.get('data')));
+
+        expect(payload.user).to.not.have.property('eids');
+      });
     });
   });
 });

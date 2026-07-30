@@ -164,6 +164,17 @@ function buildUserIds(customParams) {
   return userIds;
 }
 
+function buildUserEids(bidRequests) {
+  const eids = deepAccess(bidRequests, '0.userIdAsEids');
+  if (!Array.isArray(eids) || eids.length === 0) {
+    return null;
+  }
+
+  const onetEids = eids.filter(eid => eid.source === 'onet.pl');
+
+  return onetEids.length > 0 ? onetEids : null;
+}
+
 function getNpaFromPubConsent(pubConsent) {
   const params = new URLSearchParams(pubConsent);
   return params.get('npa') === '1';
@@ -237,6 +248,13 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
     request.ext.adbeta = customParams.adbeta;
   }
 
+  // AdShield anti-adblock recovery signal (set by dlApi as customParams.asd, like adbeta).
+  // Sent as a plain ext field (not a key-value) so das-bidder serves only
+  // adblock-compatible demand (adblock_compability == 2).
+  if (customParams.asd) {
+    request.ext.asd = customParams.asd;
+  }
+
   if (bidderRequest.device) {
     request.device = bidderRequest.device;
   }
@@ -246,7 +264,7 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
       ext: {
         npa: getNpaFromPubConsent(customParams.pubconsent),
         localcapping: customParams.local_capping,
-        localadpproduts: customParams.adp_products,
+        localadpproducts: customParams.adp_products,
         ...request.user.ext,
       },
     };
@@ -257,6 +275,12 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
         dsa: customParams.dsainfo,
       },
     }
+  }
+
+  const userEids = buildUserEids(bidRequests);
+
+  if (userEids) {
+    request.user.eids = userEids;
   }
 
   return request;
@@ -298,6 +322,11 @@ function interpretResponse(serverResponse) {
         },
       };
 
+      const targeting = bid.ext?.targeting;
+      if (targeting) {
+        bidResponse.adserverTargeting = targeting;
+      }
+
       if (bid.mtype === 1) {
         bidResponse.mediaType = BANNER;
         bidResponse.ad = bid.adm;
@@ -315,7 +344,6 @@ function interpretResponse(serverResponse) {
 
 export const spec = {
   code: BIDDER_CODE,
-  aliases: ['ringieraxelspringer'],
   supportedMediaTypes: [BANNER, NATIVE],
 
   isBidRequestValid: function (bid) {

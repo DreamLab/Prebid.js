@@ -44,9 +44,9 @@ function parseParams(params, bidderRequest) {
   if (pageContext.dv) {
     newParams.DV = pageContext.dv;
   }
-  const keywords = getAllOrtbKeywords(bidderRequest?.ortb2, pageContext.keyWords)
+  const keywords = getAllOrtbKeywords(bidderRequest?.ortb2, pageContext.keyWords);
   if (keywords.length > 0) {
-    newParams.kwrd = keywords.join('+')
+    newParams.kwrd = keywords.join('+');
   }
   if (pageContext.capping) {
     newParams.local_capping = pageContext.capping;
@@ -170,10 +170,10 @@ function parseOrtbResponse(ad) {
   };
 
   if (dsaurl) {
-    ortb.privacy = dsaurl
+    ortb.privacy = dsaurl;
   }
 
-  return ortb
+  return ortb;
 }
 
 function _parseNativeResponse(ad) {
@@ -208,7 +208,7 @@ function _parseNativeResponse(ad) {
     nativeResponse.privacyLink = dsaurl;
   }
 
-  return nativeResponse
+  return nativeResponse;
 }
 
 const buildBid = (ad, mediaType) => {
@@ -230,7 +230,7 @@ const buildBid = (ad, mediaType) => {
     ad: ad.html || null,
     width: ad.width || 0,
     height: ad.height || 0
-  }
+  };
 
   if (mediaType === 'native') {
     data.meta = { mediaType: NATIVE };
@@ -314,7 +314,7 @@ const getAdUnitCreFormat = (adUnit) => {
   }
 
   return creFormat;
-}
+};
 
 export const spec = {
   code: BIDDER_CODE,

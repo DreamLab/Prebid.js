@@ -4,7 +4,7 @@ import ringieraxelspringerAnalyticsAdapter from 'modules/ringieraxelspringerAnal
 import * as events from 'src/events.js';
 import { EVENTS } from 'src/constants.js';
 
-const { AUCTION_INIT, BID_REQUESTED, BID_RESPONSE, BID_TIMEOUT, BID_WON, NO_BID } = EVENTS;
+const { BID_REQUESTED, BID_RESPONSE, BID_TIMEOUT, BID_WON, NO_BID } = EVENTS;
 
 describe('ringieraxelspringerAnalyticsAdapter', function () {
   const scope = utils.getWindowSelf();
@@ -17,7 +17,7 @@ describe('ringieraxelspringerAnalyticsAdapter', function () {
     adapterManager.enableAnalytics({
       provider: 'ringieraxelspringer'
     });
-    queue = []
+    queue = [];
   });
 
   afterEach(() => {
@@ -39,6 +39,6 @@ describe('ringieraxelspringerAnalyticsAdapter', function () {
     expect(queue.length).to.eql(5);
     queue.forEach(function (msg) {
       expect(msg).to.equal('my-args');
-    })
+    });
   });
 });

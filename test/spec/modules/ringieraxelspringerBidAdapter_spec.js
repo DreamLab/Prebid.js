@@ -252,7 +252,6 @@ describe('ringieraxelspringerBidAdapter', function () {
       const resp = spec.interpretResponse({ body: res }, {});
       expect(resp).to.deep.equal([]);
     });
-
   });
 
   describe('buildNativeRequests', function () {

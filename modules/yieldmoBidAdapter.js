@@ -1,4 +1,3 @@
-import {getDNT} from '../libraries/dnt/index.js';
 import {
   deepAccess,
   deepSetValue,
@@ -12,12 +11,14 @@ import {
   isNumber,
   isStr,
   logError,
+  logWarn,
   parseQueryStringParameters,
   parseUrl
 } from '../src/utils.js';
 import { BANNER, VIDEO } from '../src/mediaTypes.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { Renderer } from '../src/Renderer.js';
+import { getDNT } from '../libraries/dnt/index.js';
 
 /**
  * @typedef {import('../src/adapters/bidderFactory.js').BidRequest} BidRequest
@@ -57,7 +58,7 @@ export const spec = {
    */
   isBidRequestValid: function (bid) {
     return !!(bid && bid.adUnitCode && bid.bidId && (hasBannerMediaType(bid) || hasVideoMediaType(bid)) &&
-      validateVideoParams(bid));
+      validateVideoParams(bid) && validateBlocklistParams(bid));
   },
 
   /**
@@ -75,8 +76,6 @@ export const spec = {
     const videoBidRequests = bidRequests.filter(request => hasVideoMediaType(request));
     const serverRequests = [];
     const eids = getEids(bidRequests[0]) || [];
-    const topicsData = getTopics(bidderRequest);
-    const cdep = getCdep(bidderRequest);
     if (bannerBidRequests.length > 0) {
       const serverRequest = {
         pbav: '$prebid.version$',
@@ -98,17 +97,10 @@ export const spec = {
         }),
         us_privacy: deepAccess(bidderRequest, 'uspConsent') || '',
       };
-      if (topicsData) {
-        serverRequest.topics = JSON.stringify(topicsData);
-      }
       const gpc = getGPCSignal(bidderRequest);
       if (gpc) {
         serverRequest.gpc = gpc;
       }
-      if (cdep) {
-        serverRequest.cdep = cdep;
-      }
-
       if (canAccessTopWindow()) {
         serverRequest.pr = (LOCAL_WINDOW.document && LOCAL_WINDOW.document.referrer) || '';
         serverRequest.title = LOCAL_WINDOW.document.title || '';
@@ -150,6 +142,14 @@ export const spec = {
       if (eids.length) {
         serverRequest.eids = JSON.stringify(eids);
       };
+
+      // bcat (request-level): merge ortb2 + params, send as comma-delimited
+      // param per the ad server's prebid-js endpoint (AS-5349). Omitted when empty.
+      const bcat = getBlocklist(bidderRequest, bannerBidRequests[0], 'bcat');
+      if (bcat.length) {
+        serverRequest.bcat = bcat.join(',');
+      }
+
       // check if url exceeded max length
       const fullUrl = `${bannerUrl}?${parseQueryStringParameters(serverRequest)}`;
       let extraCharacters = fullUrl.length - MAX_BANNER_REQUEST_URL_LENGTH;
@@ -172,9 +172,6 @@ export const spec = {
 
     if (videoBidRequests.length > 0) {
       const serverRequest = openRtbRequest(videoBidRequests, bidderRequest);
-      if (topicsData) {
-        serverRequest.topics = topicsData;
-      }
       if (eids.length) {
         deepSetValue(serverRequest, 'user.ext.eids', eids);
       };
@@ -195,7 +192,10 @@ export const spec = {
    */
   interpretResponse: function (serverResponse, bidRequest) {
     const bids = [];
-    const data = serverResponse.body;
+    const data = serverResponse && serverResponse.body;
+    if (!data) {
+      return bids;
+    }
     if (data.length > 0) {
       data.forEach(response => {
         if (response.cpm > 0) {
@@ -205,7 +205,12 @@ export const spec = {
     }
     if (data.seatbid) {
       const seatbids = data.seatbid.reduce((acc, seatBid) => acc.concat(seatBid.bid), []);
-      seatbids.forEach(bid => bids.push(createNewVideoBid(bid, bidRequest)));
+      seatbids.forEach(bid => {
+        const videoBid = createNewVideoBid(bid, bidRequest);
+        if (videoBid) {
+          bids.push(videoBid);
+        }
+      });
     }
     return bids;
   },
@@ -327,6 +332,14 @@ function createNewBannerBid(response) {
 function createNewVideoBid(response, bidRequest) {
   const imp = (deepAccess(bidRequest, 'data.imp') || []).find(imp => imp.id === response.impid);
 
+  // A response bid whose impid doesn't match a requested imp can't be built
+  // (imp.id / imp.video.* would throw). Skip it so one malformed bid doesn't
+  // abort interpretResponse and drop every other bid in the response; the
+  // caller filters out this null.
+  if (!imp) {
+    return null;
+  }
+
   const result = {
     dealId: response.dealid,
     requestId: imp.id,
@@ -398,6 +411,40 @@ function getId(request, idType) {
 }
 
 /**
+ * Resolve a request-level blocklist field (bcat/badv) from its two sources — the
+ * standardized ORTB global (`bidderRequest.ortb2.<field>`) and the Yieldmo-specific
+ * param (`bid.params.<field>`) — into a single deduped array of strings. Neither
+ * source is allowed to silently win (union, not precedence). Invalid values are
+ * ignored and logged rather than dropping the bid: a source that isn't an array, and
+ * any non-string/empty element, are filtered out (with a warning) so a
+ * misconfiguration is surfaced without losing the impression.
+ * @param {BidderRequest} bidderRequest bidder request (source of ortb2.<field>)
+ * @param {BidRequest} bid bid request (source of params.<field>)
+ * @param {string} field blocklist field name — 'bcat' or 'badv'
+ * @return {string[]} deduped, trimmed, non-empty string entries (possibly empty)
+ */
+function getBlocklist(bidderRequest, bid, field) {
+  const normalize = (value, source) => {
+    if (value === undefined || value === null) {
+      return [];
+    }
+    if (!isArray(value)) {
+      logWarn(`yieldmo: ignoring ${source} blocklist value; expected an array of strings, got ${JSON.stringify(value)}`);
+      return [];
+    }
+    const dropped = value.filter(item => !isStr(item) || !item.trim());
+    if (dropped.length) {
+      logWarn(`yieldmo: ignoring invalid ${source} blocklist entries (expected non-empty strings): ${JSON.stringify(dropped)}`);
+    }
+    return value.filter(item => isStr(item) && item.trim()).map(item => item.trim());
+  };
+  return [...new Set([
+    ...normalize(deepAccess(bidderRequest, `ortb2.${field}`), 'ortb2'),
+    ...normalize(deepAccess(bid, `params.${field}`), 'params'),
+  ])];
+}
+
+/**
  * @param {BidRequest[]} bidRequests bid request object
  * @param {BidderRequest} bidderRequest bidder request object
  * @return Object OpenRTB request object
@@ -412,7 +459,7 @@ function openRtbRequest(bidRequests, bidderRequest) {
     site: openRtbSite(bidRequests[0], bidderRequest),
     device: deepAccess(bidderRequest, 'ortb2.device'),
     badv: bidRequests[0].params.badv || [],
-    bcat: deepAccess(bidderRequest, 'bcat') || bidRequests[0].params.bcat || [],
+    bcat: getBlocklist(bidderRequest, bidRequests[0], 'bcat'),
     ext: {
       prebid: '$prebid.version$',
     },
@@ -436,30 +483,6 @@ function openRtbRequest(bidRequests, bidderRequest) {
 function getGPCSignal(bidderRequest) {
   const gpc = deepAccess(bidderRequest, 'ortb2.regs.ext.gpc');
   return gpc;
-}
-
-function getCdep(bidderRequest) {
-  const cdep = deepAccess(bidderRequest, 'ortb2.device.ext.cdep') || null;
-  return cdep;
-}
-
-function getTopics(bidderRequest) {
-  const userData = deepAccess(bidderRequest, 'ortb2.user.data') || [];
-  const topicsData = userData.filter((dataObj) => {
-    const segtax = dataObj.ext?.segtax;
-    return segtax >= 600 && segtax <= 609;
-  })[0];
-
-  if (topicsData) {
-    const topicsObject = {
-      taxonomy: topicsData.ext.segtax,
-      classifier: topicsData.ext.segclass,
-      // topics needs to be array of numbers
-      topics: Object.values(topicsData.segment).map(i => Number(i)),
-    };
-    return topicsObject;
-  }
-  return null;
 }
 
 /**
@@ -520,7 +543,13 @@ function getBidFloor(bidRequest, mediaType) {
   let floorInfo = {};
 
   if (typeof bidRequest.getFloor === 'function') {
-    floorInfo = bidRequest.getFloor({ currency: CURRENCY, mediaType, size: '*' });
+    // getFloor can throw or return undefined/null (e.g. no matching floor rule);
+    // guard both so a floors misconfig can't drop the bid.
+    try {
+      floorInfo = bidRequest.getFloor({ currency: CURRENCY, mediaType, size: '*' }) || {};
+    } catch (e) {
+      logError('yieldmo: getFloor threw; falling back to params bidfloor', e);
+    }
   }
 
   return floorInfo.floor || bidRequest.params.bidfloor || bidRequest.params.bidFloor || 0;
@@ -597,6 +626,54 @@ function populateOpenRtbGdpr(openRtbRequest, bidderRequest) {
   }
 }
 
+const isDefined = val => typeof val !== 'undefined';
+
+const paramRequired = (paramStr, value, conditionStr) => {
+  let error = `"${paramStr}" is required`;
+  if (conditionStr) {
+    error += ' when ' + conditionStr;
+  }
+  throw new Error(error);
+};
+
+const paramInvalid = (paramStr, value, expectedStr) => {
+  expectedStr = expectedStr ? ', expected: ' + expectedStr : '';
+  value = JSON.stringify(value);
+  throw new Error(`"${paramStr}"=${value} is invalid${expectedStr}`);
+};
+
+/**
+ * Build a field validator bound to a bid. `video.*` paths are checked against both
+ * `params.video.*` and `mediaTypes.video.*`; any other path is read directly.
+ * The error callback (paramRequired/paramInvalid) throws, so callers wrap in try/catch.
+ * @param {BidRequest} bid bid request
+ * @return {(fieldPath: string, validateCb: Function, errorCb: Function, errorCbParam?: string) => *}
+ */
+const createParamValidator = (bid) => (fieldPath, validateCb, errorCb, errorCbParam) => {
+  if (fieldPath.indexOf('video') === 0) {
+    const valueFieldPath = 'params.' + fieldPath;
+    const mediaFieldPath = 'mediaTypes.' + fieldPath;
+    const valueParams = deepAccess(bid, valueFieldPath);
+    const mediaTypesParams = deepAccess(bid, mediaFieldPath);
+    const hasValidValueParams = validateCb(valueParams);
+    const hasValidMediaTypesParams = validateCb(mediaTypesParams);
+
+    if (hasValidValueParams) return valueParams;
+    else if (hasValidMediaTypesParams) return mediaTypesParams;
+    else {
+      if (!hasValidValueParams) errorCb(valueFieldPath, valueParams, errorCbParam);
+      else if (!hasValidMediaTypesParams) errorCb(mediaFieldPath, mediaTypesParams, errorCbParam);
+    }
+    return valueParams || mediaTypesParams;
+  } else {
+    const value = deepAccess(bid, fieldPath);
+    if (!validateCb(value)) {
+      errorCb(fieldPath, value, errorCbParam);
+    }
+    return value;
+  }
+};
+
 /**
  * Determines whether or not the given video bid request is valid. If it's not a video bid, returns true.
  * @param {object} bid bid to validate
@@ -606,55 +683,16 @@ function validateVideoParams(bid) {
   if (!hasVideoMediaType(bid)) {
     return true;
   }
-
-  const paramRequired = (paramStr, value, conditionStr) => {
-    let error = `"${paramStr}" is required`;
-    if (conditionStr) {
-      error += ' when ' + conditionStr;
-    }
-    throw new Error(error);
-  };
-
-  const paramInvalid = (paramStr, value, expectedStr) => {
-    expectedStr = expectedStr ? ', expected: ' + expectedStr : '';
-    value = JSON.stringify(value);
-    throw new Error(`"${paramStr}"=${value} is invalid${expectedStr}`);
-  };
-
-  const isDefined = val => typeof val !== 'undefined';
-  const validate = (fieldPath, validateCb, errorCb, errorCbParam) => {
-    if (fieldPath.indexOf('video') === 0) {
-      const valueFieldPath = 'params.' + fieldPath;
-      const mediaFieldPath = 'mediaTypes.' + fieldPath;
-      const valueParams = deepAccess(bid, valueFieldPath);
-      const mediaTypesParams = deepAccess(bid, mediaFieldPath);
-      const hasValidValueParams = validateCb(valueParams);
-      const hasValidMediaTypesParams = validateCb(mediaTypesParams);
-
-      if (hasValidValueParams) return valueParams;
-      else if (hasValidMediaTypesParams) return hasValidMediaTypesParams;
-      else {
-        if (!hasValidValueParams) errorCb(valueFieldPath, valueParams, errorCbParam);
-        else if (!hasValidMediaTypesParams) errorCb(mediaFieldPath, mediaTypesParams, errorCbParam);
-      }
-      return valueParams || mediaTypesParams;
-    } else {
-      const value = deepAccess(bid, fieldPath);
-      if (!validateCb(value)) {
-        errorCb(fieldPath, value, errorCbParam);
-      }
-      return value;
-    }
-  };
+  const validate = createParamValidator(bid);
 
   try {
     validate('video.context', val => !isEmpty(val), paramRequired);
 
     validate('params.placementId', val => !isEmpty(val), paramRequired);
 
-    validate('video.playerSize', val => isArrayOfNums(val, 2) ||
-      (isArray(val) && val.every(v => isArrayOfNums(v, 2))),
-    paramInvalid, 'array of 2 integers, ex: [640,480] or [[640,480]]');
+    validate('video.playerSize',
+      val => isArrayOfNums(val, 2) || (isArray(val) && val.every(v => isArrayOfNums(v, 2))),
+      paramInvalid, 'array of 2 integers, ex: [640,480] or [[640,480]]');
 
     validate('video.mimes', val => isDefined(val), paramRequired);
     validate('video.mimes', val => isArray(val) && val.every(v => isStr(v)), paramInvalid,
@@ -677,6 +715,24 @@ function validateVideoParams(bid) {
     validate('video.pos', val => !isDefined(val) || isNumber(val), paramInvalid);
     validate('params.badv', val => !isDefined(val) || isArray(val), paramInvalid,
       'array of strings, ex: ["ford.com","pepsi.com"]');
+    return true;
+  } catch (e) {
+    logError(e.message);
+    return false;
+  }
+}
+
+/**
+ * Validate the publisher-set `bcat` param for all media types (banner and video).
+ * A missing value is allowed; a value that is present but is not an array is
+ * rejected (drops the bid) — the agreed middle ground between dropping nothing and
+ * dropping over an absent optional field. See FS-12403.
+ * @param {BidRequest} bid bid request
+ * @return {boolean} true if valid (or absent), false if present but malformed
+ */
+function validateBlocklistParams(bid) {
+  const validate = createParamValidator(bid);
+  try {
     validate('params.bcat', val => !isDefined(val) || isArray(val), paramInvalid,
       'array of strings, ex: ["IAB1-5","IAB1-6"]');
     return true;
@@ -698,7 +754,7 @@ function shortcutProperty(extraCharacters, target, propertyName) {
   if (target[propertyName].length > extraCharacters) {
     target[propertyName] = target[propertyName].substring(0, target[propertyName].length - extraCharacters);
 
-    return 0
+    return 0;
   }
 
   const charactersLeft = extraCharacters - target[propertyName].length;
@@ -735,7 +791,7 @@ function canAccessTopWindow() {
 }
 
 function isStage(bidderRequest) {
-  return !!bidderRequest.refererInfo?.referer?.includes('pb_force_a');
+  return !!bidderRequest.refererInfo?.page?.includes('pb_force_a');
 }
 
 function getAdserverUrl(path, stage) {

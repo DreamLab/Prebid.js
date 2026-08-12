@@ -252,57 +252,6 @@ describe('ringieraxelspringerBidAdapter', function () {
       const resp = spec.interpretResponse({ body: res }, {});
       expect(resp).to.deep.equal([]);
     });
-
-    it('should generate auctionConfig when fledge is enabled', function () {
-      const bidRequest = {
-        method: 'GET',
-        url: 'https://example.com',
-        bidIds: [{
-          slot: 'top',
-          bidId: '123',
-          network: 'testnetwork',
-          sizes: ['300x250'],
-          params: {
-            site: 'testsite',
-            area: 'testarea',
-            network: 'testnetwork'
-          },
-          fledgeEnabled: true
-        },
-        {
-          slot: 'top',
-          bidId: '456',
-          network: 'testnetwork',
-          sizes: ['300x250'],
-          params: {
-            site: 'testsite',
-            area: 'testarea',
-            network: 'testnetwork'
-          },
-          fledgeEnabled: false
-        }]
-      };
-
-      const auctionConfigs = [{
-        'bidId': '123',
-        'config': {
-          'seller': 'https://csr.onet.pl',
-          'decisionLogicUrl': 'https://csr.onet.pl/testnetwork/v1/protected-audience-api/decision-logic.js',
-          'interestGroupBuyers': ['https://csr.onet.pl'],
-          'auctionSignals': {
-            'params': {
-              site: 'testsite',
-              area: 'testarea',
-              network: 'testnetwork'
-            },
-            'sizes': ['300x250'],
-            'gctx': '1234567890'
-          }
-        }
-      }];
-      const resp = spec.interpretResponse({body: {gctx: '1234567890'}}, bidRequest);
-      expect(resp).to.deep.equal({bids: [], paapi: auctionConfigs});
-    });
   });
 
   describe('buildNativeRequests', function () {

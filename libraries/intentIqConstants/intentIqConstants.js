@@ -5,13 +5,13 @@ export const SUPPORTED_TYPES = ["html5", "cookie"];
 export const WITH_IIQ = "A";
 export const WITHOUT_IIQ = "B";
 export const DEFAULT_PERCENTAGE = 95;
-export const BLACK_LIST = "L";
 export const CLIENT_HINTS_KEY = "_iiq_ch";
 export const EMPTY = "EMPTY";
 export const GVLID = "1323";
-export const VERSION = 0.33;
+export const VERSION = 0.371;
 export const PREBID = "pbjs";
 export const HOURS_24 = 86400000;
+export const HOURS_72 = HOURS_24 * 3;
 
 export const INVALID_ID = "INVALID_ID";
 

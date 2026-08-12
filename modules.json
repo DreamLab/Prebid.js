@@ -8,7 +8,6 @@
   "pubmaticBidAdapter",
   "criteoBidAdapter",
   "rtbhouseBidAdapter",
-  "categoryTranslation",
   "smartadserverBidAdapter",
   "prebidServerBidAdapter",
   "ringieraxelspringerAnalyticsAdapter",
@@ -28,9 +27,7 @@
   "visxBidAdapter",
   "currency",
   "dasBidAdapter",
-  "paapi",
-  "paapiForGpt",
-  "dfpAdServerVideo",
+  "gamAdServerVideo",
   "criteoIdSystem",
   "connectadBidAdapter",
   "gptPreAuction",
@@ -38,5 +35,8 @@
   "allegroBidAdapter",
   "richaudienceBidAdapter",
   "msftBidAdapter",
-  "tripleliftBidAdapter"
+  "tripleliftBidAdapter",
+  "bidViewability",
+  "apsBidAdapter",
+  "taboolaBidAdapter"
 ]

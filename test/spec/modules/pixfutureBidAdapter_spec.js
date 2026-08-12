@@ -1,10 +1,6 @@
 import { expect } from 'chai'; // may prefer 'assert' in place of 'expect'
 import { spec } from 'modules/pixfutureBidAdapter.js';
 import { newBidder } from 'src/adapters/bidderFactory.js';
-import * as bidderFactory from 'src/adapters/bidderFactory.js';
-import { auctionManager } from 'src/auctionManager.js';
-import { deepClone } from 'src/utils.js';
-import { config } from 'src/config.js';
 
 describe('PixFutureAdapter', function () {
   it('<description of unit or feature being tested>', function () {
@@ -247,7 +243,7 @@ describe('PixFutureAdapter', function () {
 
       expect(bidRequest.data).to.exist;
       expect(bidRequest.data.sizes).to.deep.equal([[300, 250]]);
-      expect(bidRequest.data.params).to.deep.equal({'pix_id': '777'});
+      expect(bidRequest.data.params).to.deep.equal({ 'pix_id': '777' });
       expect(bidRequest.data.adUnitCode).to.deep.equal('26335x300x250x14x_ADSLOT88');
     });
   });

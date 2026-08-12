@@ -1,5 +1,6 @@
 const ghRequester = require('./ghRequest.js');
 const AWS = require("@aws-sdk/client-s3");
+const fs = require('fs');
 
 const MODULE_PATTERNS = [
   /^modules\/([^\/]+)BidAdapter(\.(\w+)|\/)/,
@@ -10,8 +11,11 @@ const MODULE_PATTERNS = [
 
 const EXCLUDE_PATTERNS = [
   /^test\//,
-  /^integrationExamples\//
+  /^integrationExamples\//,
+  /^[^\/]+$/,
+  /^.github\//,
 ]
+
 const LIBRARY_PATTERN = /^libraries\/([^\/]+)\//;
 
 function extractVendor(chunkName) {
@@ -25,7 +29,7 @@ function extractVendor(chunkName) {
 }
 
 const getLibraryRefs = (() => {
-  const deps = require('../../../build/dist/dependencies.json');
+  const deps = JSON.parse(fs.readFileSync(process.env.DEPENDENCIES_JSON).toString());
   const refs = {};
   return function (libraryName) {
     if (!refs.hasOwnProperty(libraryName)) {
@@ -133,6 +137,7 @@ async function getPRProperties({github, context, prNo, reviewerTeam, engTeam, au
     });
   const data = {
     pr: prNo,
+    draft: pr.data.draft,
     author: {
       login: author,
       isPrebidMember: await isPrebidMember(author)
@@ -142,9 +147,9 @@ async function getPRProperties({github, context, prNo, reviewerTeam, engTeam, au
     prebidReviewers,
     prebidEngineers,
     review,
-  }
+  };
   data.review.requires = reviewRequirements(data);
-  data.review.ok = satisfiesReviewRequirements(data.review);
+  data.review.ok = data.draft || satisfiesReviewRequirements(data.review);
   return data;
 }
 

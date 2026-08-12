@@ -9,6 +9,7 @@ const path = require('path');
 const _ = require('lodash');
 const tseslint = require('typescript-eslint');
 const {getSourceFolders} = require('./gulpHelpers.js');
+const APPROVED_LOAD_EXTERNAL_SCRIPT_PATHS = require('./plugins/eslint/approvedLoadExternalScriptPaths.js');
 
 function jsPattern(name) {
   return [`${name}/**/*.js`, `${name}/**/*.mjs`]
@@ -92,6 +93,14 @@ module.exports = [
         tagNamePreference: {
           return: 'return'
         }
+      },
+      'import/resolver': {
+        [path.resolve('./plugins/eslint/resolver')]: true,
+        node: true,
+        typescript: {
+          alwaysTryTypes: true,
+          project: './tsconfig.json',
+        },
       }
     },
     languageOptions: {
@@ -106,11 +115,32 @@ module.exports = [
     },
     rules: {
       'comma-dangle': 'off',
-      semi: 'off',
+      '@stylistic/comma-dangle': 'off',
+      '@stylistic/semi': ['error', 'always'],
       'no-undef': 2,
+      'no-constant-binary-expression': 'error',
+      'no-useless-assignment': 'error',
+      'prebid/no-redundant-validated-condition': 'error',
       'no-console': 'error',
+      'prebid/no-extra-function-args': 'error',
       'space-before-function-paren': 'off',
-      'import/extensions': ['error', 'ignorePackages'],
+      '@stylistic/space-before-function-paren': 'off',
+      'import/no-unresolved': 'error',
+      'import/named': 'error',
+      'import/default': 'error',
+      'import/export': 'error',
+      'import/no-named-as-default': 'warn',
+      'import/no-named-as-default-member': 'warn',
+      'import/no-duplicates': 'warn',
+      'import/no-extraneous-dependencies': ['error', {
+        // flag imports that are not runtime or peer dependencies;
+        // except for tests, which are allowed devDependencies
+        devDependencies: sourcePattern('test'),
+        peerDependencies: true,
+        optionalDependencies: false,
+        includeTypes: true,
+      }],
+      'prebid/no-implicit-operand-conversion': 'error',
       'no-restricted-syntax': [
         'error',
         {
@@ -121,6 +151,13 @@ module.exports = [
           selector: "VariableDeclarator[id.name=/^log(Message|Info|Warn|Error|Result)$/][init.type=/FunctionExpression|ArrowFunctionExpression/]",
           message: "Assigning a function to 'logResult, 'logMessage', 'logInfo', 'logWarn', or 'logError' is not allowed."
         },
+      ],
+      'no-restricted-imports': [
+        'error', {
+          patterns: [
+            '**/src/adloader.js'
+          ]
+        }
       ],
 
       // Exceptions below this line are temporary (TM), so that eslint can be added into the CI process.
@@ -156,19 +193,18 @@ module.exports = [
       'object-shorthand': 'off',
       'prefer-regex-literals': 'off',
       'no-case-declarations': 'off',
-      'no-useless-catch': 'off',
       '@stylistic/quotes': 'off',
       '@stylistic/quote-props': 'off',
-      '@stylistic/array-bracket-spacing': 'off',
-      '@stylistic/object-curly-spacing': 'off',
-      '@stylistic/semi': 'off',
-      '@stylistic/space-before-function-paren': 'off',
       '@stylistic/multiline-ternary': 'off',
-      '@stylistic/computed-property-spacing': 'off',
-      '@stylistic/lines-between-class-members': 'off',
-      '@stylistic/comma-dangle': 'off',
-      '@stylistic/object-curly-newline': 'off',
-      '@stylistic/object-property-newline': 'off',
+    }
+  },
+  {
+    files: getSourceFolders().map(dir => `${dir}/**/*.d.ts`),
+    ignores: [
+      'src/types/**/*'
+    ],
+    rules: {
+      'prebid/declaration-filename': 'error'
     }
   },
   ...Object.entries(allowedImports).map(([path, allowed]) => {
@@ -200,6 +236,21 @@ module.exports = [
             property: 'sendBeacon',
             object: 'navigator',
             message: 'use ajax.js instead'
+          },
+          {
+            property: 'doNotTrack',
+            object: 'navigator',
+            message: 'DNT was deprecated by W3C; Prebid no longer supports DNT signals'
+          },
+          {
+            property: 'msDoNotTrack',
+            object: 'navigator',
+            message: 'DNT was deprecated by W3C; Prebid no longer supports DNT signals'
+          },
+          {
+            property: 'doNotTrack',
+            object: 'window',
+            message: 'DNT was deprecated by W3C; Prebid no longer supports DNT signals'
           },
           ...['outerText', 'innerText'].map(property => ({
             property,
@@ -249,7 +300,6 @@ module.exports = [
       'chai-friendly/no-unused-expressions': 'error',
       // tests were not subject to many rules and they are now a nightmare. rules below this line should be removed over time
       'no-undef': 'off',
-      'no-unused-vars': 'off',
       'no-useless-escape': 'off',
       'no-return-assign': 'off',
       'camelcase': 'off'
@@ -273,4 +323,22 @@ module.exports = [
       '@typescript-eslint/no-require-imports': 'off'
     }
   },
-]
+  // Override: allow loadExternalScript import in approved files (excluding BidAdapters)
+  {
+    files: APPROVED_LOAD_EXTERNAL_SCRIPT_PATHS.filter(p => !p.includes('BidAdapter')).map(p => {
+      // If path doesn't end with .js/.ts/.mjs, treat as folder pattern
+      if (!p.match(/\.(js|ts|mjs)$/)) {
+        return `${p}/**/*.{js,ts,mjs}`;
+      }
+      return p;
+    }),
+      rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: []
+        }
+      ],
+      }
+  },
+  ]

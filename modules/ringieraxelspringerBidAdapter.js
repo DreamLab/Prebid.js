@@ -7,7 +7,6 @@ import {
 } from '../src/utils.js';
 import { getAllOrtbKeywords } from '../libraries/keywords/keywords.js';
 import { getAdUnitSizes } from '../libraries/sizeUtils/sizeUtils.js';
-import { BO_CSR_ONET } from '../libraries/paapiTools/buyerOrigins.js';
 
 const BIDDER_CODE = 'ringieraxelspringer';
 const VERSION = '1.0';
@@ -45,9 +44,9 @@ function parseParams(params, bidderRequest) {
   if (pageContext.dv) {
     newParams.DV = pageContext.dv;
   }
-  const keywords = getAllOrtbKeywords(bidderRequest?.ortb2, pageContext.keyWords)
+  const keywords = getAllOrtbKeywords(bidderRequest?.ortb2, pageContext.keyWords);
   if (keywords.length > 0) {
-    newParams.kwrd = keywords.join('+')
+    newParams.kwrd = keywords.join('+');
   }
   if (pageContext.capping) {
     newParams.local_capping = pageContext.capping;
@@ -171,10 +170,10 @@ function parseOrtbResponse(ad) {
   };
 
   if (dsaurl) {
-    ortb.privacy = dsaurl
+    ortb.privacy = dsaurl;
   }
 
-  return ortb
+  return ortb;
 }
 
 function _parseNativeResponse(ad) {
@@ -209,7 +208,7 @@ function _parseNativeResponse(ad) {
     nativeResponse.privacyLink = dsaurl;
   }
 
-  return nativeResponse
+  return nativeResponse;
 }
 
 const buildBid = (ad, mediaType) => {
@@ -231,7 +230,7 @@ const buildBid = (ad, mediaType) => {
     ad: ad.html || null,
     width: ad.width || 0,
     height: ad.height || 0
-  }
+  };
 
   if (mediaType === 'native') {
     data.meta = { mediaType: NATIVE };
@@ -302,36 +301,6 @@ const getGdprParams = (bidderRequest) => {
   return queryString;
 };
 
-const parseAuctionConfigs = (serverResponse, bidRequest) => {
-  if (isEmpty(bidRequest)) {
-    return null;
-  }
-  const auctionConfigs = [];
-  const gctx = serverResponse && serverResponse.body?.gctx;
-
-  bidRequest.bidIds.filter(bid => bid.fledgeEnabled).forEach((bid) => {
-    auctionConfigs.push({
-      'bidId': bid.bidId,
-      'config': {
-        'seller': BO_CSR_ONET,
-        'decisionLogicUrl': `${BO_CSR_ONET}/${encodeURIComponent(bid.params.network)}/v1/protected-audience-api/decision-logic.js`,
-        'interestGroupBuyers': [ BO_CSR_ONET ],
-        'auctionSignals': {
-          'params': bid.params,
-          'sizes': bid.sizes,
-          'gctx': gctx
-        }
-      }
-    });
-  });
-
-  if (auctionConfigs.length === 0) {
-    return null;
-  } else {
-    return auctionConfigs;
-  }
-}
-
 const getAdUnitCreFormat = (adUnit) => {
   if (!adUnit) {
     return;
@@ -345,7 +314,7 @@ const getAdUnitCreFormat = (adUnit) => {
   }
 
   return creFormat;
-}
+};
 
 export const spec = {
   code: BIDDER_CODE,
@@ -363,14 +332,12 @@ export const spec = {
     const slotsQuery = getSlots(bidRequests);
     const contextQuery = getContextParams(bidRequests, bidderRequest);
     const gdprQuery = getGdprParams(bidderRequest);
-    const fledgeEligible = Boolean(bidderRequest?.paapi?.enabled);
     const network = bidRequests[0].params.network;
     const bidIds = bidRequests.map((bid) => ({
       slot: bid.params.slot,
       bidId: bid.bidId,
       sizes: getAdUnitSizes(bid),
       params: bid.params,
-      fledgeEnabled: fledgeEligible,
       mediaType: (bid.mediaTypes && bid.mediaTypes.banner) ? 'display' : NATIVE
     }));
 
@@ -383,18 +350,10 @@ export const spec = {
 
   interpretResponse: function (serverResponse, bidRequest) {
     const response = serverResponse.body;
-    const fledgeAuctionConfigs = parseAuctionConfigs(serverResponse, bidRequest);
-    const bids = (!response || !response.ads || response.ads.length === 0) ? [] : response.ads.map((ad, index) => buildBid(
+    return (!response || !response.ads || response.ads.length === 0) ? [] : response.ads.map((ad, index) => buildBid(
       ad,
       bidRequest?.bidIds?.[index]?.mediaType || 'banner'
     )).filter((bid) => !isEmpty(bid));
-
-    if (fledgeAuctionConfigs) {
-      // Return a tuple of bids and auctionConfigs. It is possible that bids could be null.
-      return {bids, paapi: fledgeAuctionConfigs};
-    } else {
-      return bids;
-    }
   }
 };
 

@@ -9,18 +9,23 @@ import {
 import { MODULE_TYPE_RTD } from '../src/activities/modules.js';
 import { getStorageManager } from '../src/storageManager.js';
 import { getGlobal } from '../src/prebidGlobal.js';
+import { getHighEntropySUA, getLowEntropySUA } from '../src/fpd/sua.js';
+
+export const dep = {
+  fetch, sendBeacon
+};
 
 // Constants
 const REAL_TIME_MODULE = 'realTimeData';
 const MODULE_NAME = 'wurfl';
-const MODULE_VERSION = '2.4.0';
+const MODULE_VERSION = '2.10.0';
 
 // WURFL_JS_HOST is the host for the WURFL service endpoints
 const WURFL_JS_HOST = 'https://prebid.wurflcloud.com';
 // WURFL_JS_ENDPOINT_PATH is the path for the WURFL.js endpoint used to load WURFL data
 const WURFL_JS_ENDPOINT_PATH = '/wurfl.js';
 // STATS_HOST is the host for the WURFL stats endpoint
-const STATS_HOST = 'https://stats.prebid.wurflcloud.com'
+const STATS_HOST = 'https://stats.prebid.wurflcloud.com';
 // STATS_ENDPOINT_PATH is the path for the stats endpoint used to send analytics data
 const STATS_ENDPOINT_PATH = '/v2/prebid/stats';
 
@@ -50,6 +55,7 @@ const ORTB2_DEVICE_FIELDS = [
 const ENRICHMENT_TYPE = {
   UNKNOWN: 'unknown',
   NONE: 'none',
+  NONE_LCE: 'none_lce',
   LCE: 'lce',
   LCE_ERROR: 'lcefailed',
   WURFL_PUB: 'wurfl_pub',
@@ -76,8 +82,6 @@ const AB_TEST = {
   TREATMENT_GROUP: 'treatment',
   DEFAULT_SPLIT: 0.5,
   DEFAULT_NAME: 'unknown',
-  ENRICHMENT_TYPE_LCE: 'lce',
-  ENRICHMENT_TYPE_WURFL: 'wurfl'
 };
 
 const logger = prefixLog('[WURFL RTD Submodule]');
@@ -94,8 +98,14 @@ let bidderEnrichment;
 // enrichmentType tracks the overall enrichment type used in the current auction
 let enrichmentType;
 
-// wurflId stores the WURFL ID from device data
+// wurflId stores the WURFL ID from device data. Reported top-level in the beacon (legacy format)
+// only when wurfl_caps is absent, for backward compatibility.
 let wurflId;
+
+// wurflCaps stores the capabilities to report in the analytics beacon (read from window.WURFL
+// via the cache). The set is declared in wurfl_pbjs.beacon.cap_indices and carries wurfl_id (new
+// format); null when no WURFL data is available (e.g. LCE path).
+let wurflCaps;
 
 // samplingRate tracks the beacon sampling rate (0-100)
 let samplingRate;
@@ -105,6 +115,16 @@ let tier;
 
 // overQuota stores the over_quota flag from wurfl_pbjs data (possible values: 0, 1)
 let overQuota;
+
+// suaPromise is started in getBidRequestData; loadWurflJsAsync chains on it for the wurfl.js URL.
+// We resolve UA client hints via src/fpd/sua.js directly (not via the bid request), so we get
+// high-entropy data regardless of firstPartyData.uaHints publisher config. The data is sent only
+// to WURFL-operated endpoints (wurfl.js and stats beacon), never to the bid request.
+let suaPromise = null;
+
+// resolvedSUA caches the resolved SUA so onAuctionEndEvent can read it synchronously.
+// By the time the auction ends, the promise is (essentially always) already resolved.
+let resolvedSUA = null;
 
 /**
  * Safely gets an object from localStorage with JSON parsing
@@ -286,22 +306,17 @@ function loadWurflJsAsync(config, bidders) {
     }
   };
 
-  // Collect Client Hints if available, then load script
-  if (navigator?.userAgentData?.getHighEntropyValues) {
-    const hints = ['architecture', 'bitness', 'model', 'platformVersion', 'uaFullVersion', 'fullVersionList'];
-    navigator.userAgentData.getHighEntropyValues(hints)
-      .then(ch => {
-        if (ch !== null) {
-          url.searchParams.set('uach', JSON.stringify(ch));
-        }
-      })
-      .finally(() => {
-        loadWurflJs(url.toString());
-      });
-  } else {
-    // Load script immediately when Client Hints not available
-    loadWurflJs(url.toString());
-  }
+  // Wait for SUA resolution (started in getBidRequestData) before loading wurfl.js, so the
+  // high-entropy client hints ride along in the ?sua= query param. If unavailable, we load
+  // without it. .catch is defensive: the script must load regardless of the SUA outcome.
+  (suaPromise || Promise.resolve(null))
+    .catch(() => null)
+    .then((sua) => {
+      if (sua) {
+        url.searchParams.set('sua', JSON.stringify(sua));
+      }
+      loadWurflJs(url.toString());
+    });
 }
 
 /**
@@ -622,6 +637,14 @@ const WurflJSDevice = {
   _getBidderCaps(bidderCode) {
     const bidderCaps = this._pbjsData.bidders?.[bidderCode]?.cap_indices || [];
     return this._filterCaps(bidderCaps);
+  },
+
+  // Private method - gets the capabilities to report in the analytics beacon.
+  // The set is declared in wurfl_pbjs.beacon.cap_indices and is independent of
+  // quota/enrichment; values are read from window.WURFL like any other cap.
+  _getBeaconCaps() {
+    const beaconCaps = this._pbjsData.beacon?.cap_indices || [];
+    return this._filterCaps(beaconCaps);
   },
 
   // Private method - checks if bidder is authorized
@@ -1023,8 +1046,6 @@ const ABTestManager = {
   _enabled: false,
   _name: null,
   _variant: null,
-  _excludeLCE: true,
-  _enrichmentType: null,
 
   /**
    * Initializes A/B test configuration
@@ -1034,8 +1055,6 @@ const ABTestManager = {
     this._enabled = false;
     this._name = null;
     this._variant = null;
-    this._excludeLCE = true;
-    this._enrichmentType = null;
 
     const abTestEnabled = params?.abTest ?? false;
     if (!abTestEnabled) {
@@ -1044,12 +1063,11 @@ const ABTestManager = {
 
     this._enabled = true;
     this._name = params?.abName ?? AB_TEST.DEFAULT_NAME;
-    this._excludeLCE = params?.abExcludeLCE ?? true;
 
     const split = params?.abSplit ?? AB_TEST.DEFAULT_SPLIT;
     this._variant = this._computeVariant(split);
 
-    logger.logMessage(`A/B test "${this._name}": user in ${this._variant} group (exclude_lce: ${this._excludeLCE})`);
+    logger.logMessage(`A/B test "${this._name}": user in ${this._variant} group`);
   },
 
   /**
@@ -1068,23 +1086,11 @@ const ABTestManager = {
   },
 
   /**
-   * Sets the enrichment type encountered in current auction
-   * @param {string} enrichmentType 'lce' or 'wurfl'
-   */
-  setEnrichmentType(enrichmentType) {
-    this._enrichmentType = enrichmentType;
-  },
-
-  /**
    * Checks if A/B test is enabled for current auction
    * @returns {boolean} True if A/B test should be applied
    */
   isEnabled() {
-    if (!this._enabled) return false;
-    if (this._enrichmentType === AB_TEST.ENRICHMENT_TYPE_LCE && this._excludeLCE) {
-      return false;
-    }
-    return true;
+    return this._enabled;
   },
 
   /**
@@ -1095,7 +1101,7 @@ const ABTestManager = {
     if (!this.isEnabled()) {
       return false;
     }
-    return (this._variant === AB_TEST.CONTROL_GROUP)
+    return (this._variant === AB_TEST.CONTROL_GROUP);
   },
 
   /**
@@ -1131,9 +1137,12 @@ const init = (config, userConsent) => {
   bidderEnrichment = new Map();
   enrichmentType = ENRICHMENT_TYPE.UNKNOWN;
   wurflId = '';
+  wurflCaps = null;
   samplingRate = DEFAULT_SAMPLING_RATE;
   tier = '';
   overQuota = DEFAULT_OVER_QUOTA;
+  suaPromise = null;
+  resolvedSUA = null;
 
   logger.logMessage('initialized', { version: MODULE_VERSION });
 
@@ -1141,7 +1150,7 @@ const init = (config, userConsent) => {
   ABTestManager.init(config?.params);
 
   return true;
-}
+};
 
 /**
  * getBidRequestData enriches the OpenRTB 2.0 device data with WURFL data
@@ -1154,6 +1163,12 @@ const getBidRequestData = (reqBidsConfigObj, callback, config, userConsent) => {
   // Start module execution timing
   WurflDebugger.moduleExecutionStart();
 
+  // Reset per-auction beacon state so a later cache-less (LCE) auction on the same page
+  // cannot report the WURFL id/caps captured by an earlier cached auction. Each branch below
+  // repopulates these only when it actually has WURFL data, matching what bidders received.
+  wurflId = '';
+  wurflCaps = null;
+
   // Extract bidders from request configuration and set default enrichment
   const bidders = new Set();
   reqBidsConfigObj.adUnits.forEach(adUnit => {
@@ -1163,19 +1178,37 @@ const getBidRequestData = (reqBidsConfigObj, callback, config, userConsent) => {
     });
   });
 
+  // Kick off SUA resolution once. By the time onAuctionEndEvent fires (after the auction),
+  // resolvedSUA will almost always be populated, so the beacon path stays fully synchronous.
+  // We call sua.js directly (not the bid request) to get full high-entropy data independently
+  // of firstPartyData.uaHints — this data goes only to WURFL-operated endpoints.
+  if (suaPromise === null) {
+    suaPromise = getHighEntropySUA()
+      .then(hi => hi || getLowEntropySUA() || null)
+      .then(sua => { resolvedSUA = sua; return sua; });
+  }
+
   // Determine enrichment type based on cache availability
   WurflDebugger.cacheReadStart();
   const cachedWurflData = getObjectFromStorage(WURFL_RTD_STORAGE_KEY);
   WurflDebugger.cacheReadStop();
 
-  const abEnrichmentType = cachedWurflData ? AB_TEST.ENRICHMENT_TYPE_WURFL : AB_TEST.ENRICHMENT_TYPE_LCE;
-  ABTestManager.setEnrichmentType(abEnrichmentType);
-
   // A/B test: Skip enrichment for control group
   if (ABTestManager.isInControlGroup()) {
     logger.logMessage('A/B test control group: skipping enrichment');
-    enrichmentType = ENRICHMENT_TYPE.NONE;
-    bidders.forEach(bidder => bidderEnrichment.set(bidder, ENRICHMENT_TYPE.NONE));
+    const controlEnrichment = cachedWurflData ? ENRICHMENT_TYPE.NONE : ENRICHMENT_TYPE.NONE_LCE;
+    enrichmentType = controlEnrichment;
+    bidders.forEach(bidder => bidderEnrichment.set(bidder, controlEnrichment));
+
+    // Read cache metadata for beacon reporting (without enriching bid request)
+    if (cachedWurflData) {
+      wurflId = cachedWurflData.WURFL?.wurfl_id || '';
+      wurflCaps = WurflJSDevice.fromCache(cachedWurflData)._getBeaconCaps();
+      samplingRate = cachedWurflData.wurfl_pbjs?.sampling_rate ?? DEFAULT_SAMPLING_RATE;
+      tier = cachedWurflData.wurfl_pbjs?.tier ?? '';
+      overQuota = cachedWurflData.wurfl_pbjs?.over_quota ?? DEFAULT_OVER_QUOTA;
+    }
+
     WurflDebugger.moduleExecutionStop();
     callback();
     return;
@@ -1198,8 +1231,9 @@ const getBidRequestData = (reqBidsConfigObj, callback, config, userConsent) => {
     }
     enrichDeviceBidder(reqBidsConfigObj, bidders, wjsDevice);
 
-    // Store WURFL ID for analytics
+    // Store WURFL ID and beacon capabilities for analytics
     wurflId = cachedWurflData.WURFL?.wurfl_id || '';
+    wurflCaps = wjsDevice._getBeaconCaps();
 
     // Store sampling rate for beacon
     samplingRate = cachedWurflData.wurfl_pbjs?.sampling_rate ?? DEFAULT_SAMPLING_RATE;
@@ -1270,7 +1304,7 @@ const getBidRequestData = (reqBidsConfigObj, callback, config, userConsent) => {
 
   WurflDebugger.moduleExecutionStop();
   callback();
-}
+};
 
 /**
  * onAuctionEndEvent is called when the auction ends
@@ -1387,12 +1421,24 @@ function onAuctionEndEvent(auctionDetails, config, userConsent) {
     path: typeof window !== 'undefined' ? window.location.pathname : '',
     sampling_rate: samplingRate,
     enrichment: enrichmentType,
-    wurfl_id: wurflId,
     tier: tier,
     over_quota: overQuota,
     consent_class: consentClass,
-    ad_units: adUnits
+    ad_units: adUnits,
+    sua: resolvedSUA
   };
+
+  // Report the configured WURFL capabilities in the new wurfl_caps object (it carries wurfl_id);
+  // otherwise fall back to the legacy top-level wurfl_id so the field is always present.
+  if (wurflCaps && Object.keys(wurflCaps).length) {
+    // Guarantee the WURFL identifier is present even if beacon.cap_indices omits it.
+    if (!('wurfl_id' in wurflCaps) && wurflId) {
+      wurflCaps.wurfl_id = wurflId;
+    }
+    payloadData.wurfl_caps = wurflCaps;
+  } else {
+    payloadData.wurfl_id = wurflId;
+  }
 
   // Add A/B test fields if enabled
   const abPayload = ABTestManager.getBeaconPayload();
@@ -1405,13 +1451,13 @@ function onAuctionEndEvent(auctionDetails, config, userConsent) {
 
   // Both sendBeacon and fetch send as text/plain to avoid CORS preflight requests.
   // Server must parse body as JSON regardless of Content-Type header.
-  const sentBeacon = sendBeacon(url.toString(), payload);
+  const sentBeacon = dep.sendBeacon(url.toString(), payload);
   if (sentBeacon) {
     WurflDebugger.setBeaconPayload(payloadData);
     return;
   }
 
-  fetch(url.toString(), {
+  dep.fetch(url.toString(), {
     method: 'POST',
     body: payload,
     mode: 'no-cors',
@@ -1428,10 +1474,17 @@ function onAuctionEndEvent(auctionDetails, config, userConsent) {
 // The WURFL submodule
 export const wurflSubmodule = {
   name: MODULE_NAME,
+  disclosureURL: 'local://modules/wurflRtdProvider.json',
   init,
   getBidRequestData,
   onAuctionEndEvent,
-}
+};
+
+// Exported for testing only
+export const __testing__ = {
+  setResolvedSUA: (value) => { resolvedSUA = value; },
+  setSuaPromise: (value) => { suaPromise = value; },
+};
 
 // Register the WURFL submodule as submodule of realTimeData
 submodule(REAL_TIME_MODULE, wurflSubmodule);

@@ -248,11 +248,14 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
     request.ext.adbeta = customParams.adbeta;
   }
 
-  // AdShield anti-adblock recovery signal (set by dlApi as customParams.asd, like adbeta).
-  // Sent as a plain ext field (not a key-value) so das-bidder serves only
-  // adblock-compatible demand (adblock_compability == 2).
-  if (customParams.asd) {
-    request.ext.asd = customParams.asd;
+  const adf = parseInt(customParams.adf, 10);
+  if (Number.isInteger(adf) && adf > 0) {
+    request.ext.adf = adf;
+  }
+
+  const asd = parseInt(customParams.asd, 10);
+  if (Number.isInteger(asd) && asd > 0) {
+    request.ext.asd = asd;
   }
 
   if (bidderRequest.device) {

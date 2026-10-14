@@ -179,7 +179,7 @@ describe('dasBidAdapter', function () {
       expect(payload.imp[0].banner.format[0]).to.deep.equal({ w: 300, h: 250 });
     });
 
-    it('should route customParams.asd into ext.asd for AdShield recovery', function () {
+    it('should route customParams.asd into ext.asd as an integer', function () {
       const asdBidRequests = [{
         ...bidRequests[0],
         params: {
@@ -201,6 +201,66 @@ describe('dasBidAdapter', function () {
       const params = new URLSearchParams(request.url.split('?')[1]);
       const payload = JSON.parse(decodeURIComponent(params.get('data')));
 
+      expect(payload.ext.asd).to.be.undefined;
+    });
+
+    it('should route customParams.adf into ext.adf as an integer', function () {
+      const adfBidRequests = [{
+        ...bidRequests[0],
+        params: {
+          ...bidRequests[0].params,
+          customParams: { adf: 1 }
+        }
+      }];
+
+      const request = spec.buildRequests(adfBidRequests, bidderRequest);
+      const params = new URLSearchParams(request.url.split('?')[1]);
+      const payload = JSON.parse(decodeURIComponent(params.get('data')));
+
+      expect(payload.ext.adf).to.equal(1);
+      expect(payload.ext.asd).to.be.undefined;
+      expect(payload.ext.keyvalues.adf).to.be.undefined;
+    });
+
+    it('should not set ext.adf without customParams.adf', function () {
+      const request = spec.buildRequests(bidRequests, bidderRequest);
+      const params = new URLSearchParams(request.url.split('?')[1]);
+      const payload = JSON.parse(decodeURIComponent(params.get('data')));
+
+      expect(payload.ext.adf).to.be.undefined;
+    });
+
+    it('should coerce string customParams.adf and customParams.asd to integers', function () {
+      const stringBidRequests = [{
+        ...bidRequests[0],
+        params: {
+          ...bidRequests[0].params,
+          customParams: { adf: '1', asd: '1' }
+        }
+      }];
+
+      const request = spec.buildRequests(stringBidRequests, bidderRequest);
+      const params = new URLSearchParams(request.url.split('?')[1]);
+      const payload = JSON.parse(decodeURIComponent(params.get('data')));
+
+      expect(payload.ext.adf).to.equal(1);
+      expect(payload.ext.asd).to.equal(1);
+    });
+
+    it('should drop non-numeric or zero customParams.adf and customParams.asd', function () {
+      const badBidRequests = [{
+        ...bidRequests[0],
+        params: {
+          ...bidRequests[0].params,
+          customParams: { adf: 'yes', asd: 0 }
+        }
+      }];
+
+      const request = spec.buildRequests(badBidRequests, bidderRequest);
+      const params = new URLSearchParams(request.url.split('?')[1]);
+      const payload = JSON.parse(decodeURIComponent(params.get('data')));
+
+      expect(payload.ext.adf).to.be.undefined;
       expect(payload.ext.asd).to.be.undefined;
     });
 

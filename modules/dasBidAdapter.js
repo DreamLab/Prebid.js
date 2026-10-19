@@ -249,11 +249,13 @@ function buildOpenRTBRequest(bidRequests, bidderRequest) {
   }
 
   const adf = parseInt(customParams.adf, 10);
+  
   if (Number.isInteger(adf) && adf > 0) {
     request.ext.adf = adf;
   }
 
   const asd = parseInt(customParams.asd, 10);
+  
   if (Number.isInteger(asd) && asd > 0) {
     request.ext.asd = asd;
   }
